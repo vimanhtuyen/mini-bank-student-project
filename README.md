@@ -23,6 +23,4 @@ python main.py
 - Xem số dư
 - Xem lịch sử giao dịch
 
-
--- Test PUSH ---
--- Peter --
+-- NHẬT NAM
