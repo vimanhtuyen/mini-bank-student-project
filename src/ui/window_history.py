@@ -78,7 +78,7 @@ class HistoryWindow(tk.Toplevel):
     
     def is_match_selected(self, note_text: str) -> bool:
         keyword = self.search_entry.get().strip().lower()
-        if keyword == "";
+        if keyword == "":
             return True
         return keyword in note_text.lower()
     
