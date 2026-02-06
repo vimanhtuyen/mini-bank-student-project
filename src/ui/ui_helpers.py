@@ -18,3 +18,21 @@ def read_positive_integer(text: str) -> int:
     if value <= 0:
         return -1
     return value
+
+def get_transcation_type_display(transcation_type: str) -> str:
+    mapping = {
+        "DEPOSIT": "NAP TIEN",
+        "WITHDRAW": "RUT TIEN",
+        "TRANSFER_OUT": "CHUYEN TIEN DI",
+        "TRANSFER_IN": "CHUYEN TIEN DEN",
+    }
+    return mapping.get(str(transcation_type), str(transcation_type))
+
+def is_pin_format_valid(pin_code: str) -> bool:
+    pin_code = str(pin_code).strip()
+    if not pin_code.isdigit():
+        return False
+    if len(pin_code) < 4 or len(pin_code) > 6:
+        return False
+    return True
+
