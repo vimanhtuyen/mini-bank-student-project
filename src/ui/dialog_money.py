@@ -5,12 +5,6 @@ from src.ui.ui_helpers import read_positive_integer, format_money_vnd
 
 
 class MoneyDialog(tk.Toplevel):
-    """Cửa sổ nạp/rút tiền (V2).
-
-    - Hiển thị số dư hiện tại
-    - Xác nhận trước khi thực hiện
-    """
-
     def __init__(self, parent, title_text: str, current_balance: int, submit_callback):
         super().__init__(parent)
         self.title(title_text)

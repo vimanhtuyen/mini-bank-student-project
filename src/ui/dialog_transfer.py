@@ -5,13 +5,6 @@ from src.ui.ui_helpers import read_positive_integer, format_money_vnd
 
 
 class TransferDialog(tk.Toplevel):
-    """Cửa sổ chuyển khoản (V2).
-
-    - Hiển thị số dư người gửi
-    - Tự hiển thị tên người nhận (nếu tìm thấy)
-    - Xác nhận trước khi chuyển
-    """
-
     def __init__(self, parent, bank_service, from_account_id: str, success_callback):
         super().__init__(parent)
         self.title("Chuyển khoản")

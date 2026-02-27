@@ -12,7 +12,6 @@ def format_money_vnd(money: int) -> str:
 
 
 def read_positive_integer(prompt: str) -> Optional[int]:
-    """Đọc một số nguyên dương từ bàn phím. Nếu sai thì trả về None."""
     input_text = input(prompt).strip()
     if input_text == "":
         return None
@@ -34,7 +33,7 @@ def run_application() -> None:
 
     while True:
         print("\n" + "=" * 60)
-        print("MINI BANK - ỨNG DỤNG NGÂN HÀNG MINI (Console)")
+        print("MINI BANK")
         print("=" * 60)
         print("1) Tạo tài khoản mới")
         print("2) Đăng nhập")

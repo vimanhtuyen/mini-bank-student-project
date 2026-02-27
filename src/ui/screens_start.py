@@ -11,7 +11,7 @@ class StartFrame(ttk.Frame):
 
         description_label = ttk.Label(
             self,
-            text="Phiên bản V2: Giao diện rõ ràng hơn + kiểm tra nhập liệu tốt hơn\nChọn một chức năng để bắt đầu.",
+            text="Chọn một chức năng để bắt đầu.",
             justify="center",
         )
         description_label.pack(pady=8)
@@ -27,9 +27,6 @@ class StartFrame(ttk.Frame):
         tips_frame.pack(pady=18, padx=40, fill="x")
 
         tips_text = (
-            "- Dữ liệu lưu vào file JSON nên tắt mở lại vẫn còn.\n"
-            "- Mỗi bạn làm 1 phần UI để tránh xung đột merge.\n"
-            "- Khi làm việc nhóm: pull trước, rồi mới sửa code."
         )
         ttk.Label(tips_frame, text=tips_text, justify="left").pack(anchor="w", padx=10, pady=10)
 

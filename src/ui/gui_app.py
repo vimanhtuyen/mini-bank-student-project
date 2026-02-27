@@ -13,8 +13,6 @@ DATA_FILE_PATH = "data/bank_data.json"
 
 
 class MiniBankApplication(tk.Tk):
-    """Ứng dụng Tkinter chính."""
-
     def __init__(self):
         super().__init__()
         self.title("Mini Bank - Tkinter GUI (V2)")
@@ -82,7 +80,7 @@ class MiniBankApplication(tk.Tk):
         messagebox.showinfo("Hướng dẫn nhanh", text)
 
     def show_about(self) -> None:
-        messagebox.showinfo("Giới thiệu", "Mini Bank - Tkinter GUI (V2)\nDự án học Git + Python theo nhóm (3 bạn).")
+        messagebox.showinfo("Mini Bank")
 
     def set_status(self, text: str) -> None:
         self.status_text.set(str(text))
