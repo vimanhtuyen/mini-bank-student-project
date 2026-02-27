@@ -26,4 +26,4 @@ python main.py
 
 hello Peter
 
-cho du an tu teg
+cho du an tu te
