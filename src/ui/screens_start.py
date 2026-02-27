@@ -23,13 +23,6 @@ class StartFrame(ttk.Frame):
         ttk.Button(button_frame, text="Đăng nhập", command=self.go_login, width=28).grid(row=1, column=0, pady=8)
         ttk.Button(button_frame, text="Thoát", command=self.app.on_window_close, width=28).grid(row=2, column=0, pady=8)
 
-        tips_frame = ttk.LabelFrame(self, text="Gợi ý cho học sinh")
-        tips_frame.pack(pady=18, padx=40, fill="x")
-
-        tips_text = (
-        )
-        ttk.Label(tips_frame, text=tips_text, justify="left").pack(anchor="w", padx=10, pady=10)
-
     def go_register(self) -> None:
         self.app.show_frame("RegisterFrame")
 
