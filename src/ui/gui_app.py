@@ -55,7 +55,7 @@ class MiniBankApplication(tk.Tk):
         style.configure("TLabel", font=("Segoe UI", 10))
         style.configure("Title.TLabel", font=("Segoe UI", 22, "bold"))
         style.configure("Header.TLabel", font=("Segoe UI", 16, "bold"))
-    
+
     def setup_menu(self) -> None:
         menu_bar = tk.Menu(self)
 
@@ -63,7 +63,7 @@ class MiniBankApplication(tk.Tk):
         file_menu.add_command(label="Lưu dữ liệu", command=self.save_data)
         file_menu.add_separator()
         file_menu.add_command(label="Thoát", command=self.on_window_close)
-        menu_bar.add_cascade(label="File", menu=file_menu)
+        menu_bar.add_cascade(label="Tệp", menu=file_menu)
 
         help_menu = tk.Menu(menu_bar, tearoff=0)
         help_menu.add_command(label="Hướng dẫn", command=self.show_help)
@@ -72,22 +72,49 @@ class MiniBankApplication(tk.Tk):
 
         self.config(menu=menu_bar)
 
-
-    def show_about(self) -> None:
-        messagebox.showinfo("Giới thiệu") # Có thể sửa sau
-        
     def show_help(self) -> None:
         text = (
-            "1. Tạo tài khoản. \n"
-            "2. Đăng nhập. \n"
-            "3. Chuyển khoản. \n"
-            "4. Nạp tiền. \n"
-            "5. Rút tiền. \n"
-            "6. Xem lịch sử giao dịch. \n"
-            "7. Đăng xuất. \n"
-            "8. Thoát. \n"
+            "1) Tạo tài khoản: nhập Tên + PIN (4-6 số) + Số dư ban đầu.\n"
+            "2) Đăng nhập: nhập Số tài khoản + PIN.\n"
+            "3) Sau khi đăng nhập: Nạp/Rút/Chuyển khoản, xem Lịch sử.\n"
+            "4) Dữ liệu lưu tự động khi bạn thao tác hoặc khi thoát."
         )
-        messagebox.showinfo("Hướng dẫn") # Có thể sửa sau
+        messagebox.showinfo("Hướng dẫn nhanh", text)
+
+    def show_about(self) -> None:
+        messagebox.showinfo("Giới thiệu", "Mini Bank - Tkinter GUI (V2)\nDự án học Git + Python theo nhóm (3 bạn).")
+
+    def set_status(self, text: str) -> None:
+        self.status_text.set(str(text))
+
+    def create_frames(self) -> None:
+        self.frames["StartFrame"] = StartFrame(self.container, self)
+        self.frames["RegisterFrame"] = RegisterFrame(self.container, self)
+        self.frames["LoginFrame"] = LoginFrame(self.container, self)
+        self.frames["DashboardFrame"] = DashboardFrame(self.container, self)
+
+        for frame in self.frames.values():
+            frame.grid(row=0, column=0, sticky="nsew")
+
+    def show_frame(self, frame_name: str) -> None:
+        frame = self.frames.get(frame_name)
+        if frame is None:
+            return
+
+        if frame_name == "DashboardFrame":
+            frame.refresh_information()
+
+        self.set_status(f"Đang ở màn hình: {frame_name}")
+        frame.tkraise()
+
+    def save_data(self) -> None:
+        save_bank_data(DATA_FILE_PATH, self.bank_service.build_snapshot_data())
+        self.set_status("Đã lưu dữ liệu.")
+
+    def on_window_close(self) -> None:
+        self.save_data()
+        self.destroy()
+
 
 def run_application() -> None:
     app = MiniBankApplication()

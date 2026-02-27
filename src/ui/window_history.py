@@ -5,6 +5,7 @@ from src.ui.ui_helpers import format_money_vnd, get_transaction_type_display
 
 
 class HistoryWindow(tk.Toplevel):
+
     def __init__(self, parent, bank_service, account_id: str):
         super().__init__(parent)
         self.title("Lịch sử giao dịch")
@@ -65,30 +66,46 @@ class HistoryWindow(tk.Toplevel):
 
         self.refresh_table()
 
-
     def clear_table(self) -> None:
         for item_id in self.tree.get_children():
             self.tree.delete(item_id)
 
     def is_match_filter(self, display_type: str) -> bool:
         selected = self.filter_value.get()
-        if selected == "Tat Ca":
+        if selected == "Tất cả":
             return True
         return display_type == selected
-    
-    def is_match_selected(self, note_text: str) -> bool:
+
+    def is_match_search(self, note_text: str) -> bool:
         keyword = self.search_entry.get().strip().lower()
         if keyword == "":
             return True
-        return keyword in note_text.lower()
-    
+        return keyword in str(note_text).lower()
+
     def refresh_table(self) -> None:
         self.clear_table()
 
-        history = self.bank_service.get_transcation_history(self.account_id)
-        for transcation in history:
-            display_type = get_transaction_type_display(transcation.transcation_type)
+        history = self.bank_service.get_transaction_history(self.account_id)
+        for transaction in history:
+            display_type = get_transaction_type_display(transaction.transaction_type)
             if not self.is_match_filter(display_type):
                 continue
-            if not self.is_match_search(transcation.note):
+            if not self.is_match_search(transaction.note):
                 continue
+
+            detail_text = ""
+            if str(transaction.transaction_type).startswith("TRANSFER"):
+                detail_text = f"{transaction.from_account_id} -> {transaction.to_account_id}"
+
+            self.tree.insert(
+                "",
+                "end",
+                values=(
+                    transaction.time_text,
+                    transaction.transaction_id,
+                    display_type,
+                    format_money_vnd(transaction.amount),
+                    detail_text,
+                    transaction.note,
+                ),
+            )
