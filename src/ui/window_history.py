@@ -1,8 +1,14 @@
 import tkinter as tk
-from tkinter import ttk
+from tkinter import ttk, messagebox, filedialog
+import csv
 
-from src.ui.ui_helpers import format_money_vnd, get_transaction_type_display
-
+from src.ui.ui_helpers import (
+    format_money_vnd,
+    get_transaction_type_display,
+    normalize_text_for_search,
+    is_date_yyyy_mm_dd_valid,
+    is_time_in_date_range
+)
 
 class HistoryWindow(tk.Toplevel):
 
@@ -109,3 +115,63 @@ class HistoryWindow(tk.Toplevel):
                     transaction.note,
                 ),
             )
+    def export_csv(self) -> None:
+        transactions = self.get_filtered_transactions()
+        if len(transactions) == 0:
+            messagebox.showinfo("Thông báo", "Không có giao dịch nào để xuất.")
+            return
+        
+        default_name = f"history_{self.account_id}.csv"
+        file_path = filedialog.asksaveasfilename(
+            title="Lưu lịch sử giao dịch",
+            defaultextension=".csv",
+            initialfile=default_name,
+            filetypes=[("CSV files", "*.csv"), ("All files", "*.*")]
+        )
+
+        if not file_path:
+            return
+        
+        try:
+            with open(file_path, "w", newline="", encoding="utf-8") as file:
+                writer = csv.writer(file)
+                writer.writerow(
+                    ["Thời gian", "Mã giao dịch", "Loại", "Số tiền", "Chi tiết", "Ghi chú"]
+                )
+                
+                for transaction in transactions:
+                    display_type = get_transaction_type_display(transaction.transaction_type)
+                    detail_text = ""
+
+                    if str(transaction.transaction_type).startswith("TRANSFER"):
+                        detail_text = f"{transaction.from_account_id} -> {transaction.to_account_id}"
+
+                    writer.writerow([
+                        transaction.time_text,
+                        transaction.transaction_id,
+                        display_type,
+                        transaction.amount,
+                        detail_text,
+                        transaction.note,
+                    ])
+
+            messagebox.showinfo("Thành công", f"Đã xuất lịch sử giao dịch ra {file_path}") 
+        except Exception:
+            messagebox.showerror("Lỗi", "Có lỗi xảy ra khi xuất file CSV.")
+    
+    def on_double_click(self, event = None) -> None:
+        selected = self.tree.selection()
+        if not selected:
+            return
+        values = self.tree.item(selected[0], "values")
+
+        detail_text = (
+            f"Thời gian: {values[0]}\n"
+            f"Mã giao dịch: {values[1]}\n"
+            f"Loại: {values[2]}\n"
+            f"Số tiền: {values[3]}\n"
+            f"Chi tiết: {values[4]}\n"
+            f"Ghi chú: {values[5]}"
+        )
+
+        messagebox.showinfo("Chi tiết giao dịch", detail_text)
