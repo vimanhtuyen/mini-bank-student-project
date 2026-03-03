@@ -1,6 +1,7 @@
-from typing import Optional
-from src.storage.json_storage import load_bank_data, save_bank_data
+from typing import Optional, Tuple
+from src.ui.ui_helpers import format_money_vnd, is_pin_format_valid
 from src.core.bank_service import BankService
+import re
 
 
 DATA_FILE_PATH = "data/bank_data.json"
@@ -226,3 +227,35 @@ def show_history_screen(bank_service: BankService, account_id: str) -> None:
             line += f" | Ghi chú: {transaction.note}"
 
         print(line)
+def parse_money_text(text: str) -> Optional[int]:
+    raw = str(text).strip()
+    if raw == "":
+        return None
+    raw = re.sub(r"[\s\.,_]", "", raw)
+    if not raw.isdigit():
+        return None
+    value = int(raw) 
+    if value <=0:
+        return None
+    return value
+def read_non_empty(prompt: str) -> str:
+    while True:
+        value = input(prompt).strip()
+        if value != "":
+            return value
+        print("Giá trị không được để trống như não bạn. Vui lòng nạp 2.000 vnđ để đăng nhập lại")
+def read_valid_pin(prompt: str) -> str:
+    while True:
+        pin_code = input(prompt).strip()
+        if is_pin_format_valid(pin_code):
+            return pin_code
+        print("PIN không được để trống, như thế là hư.  Hãy nhờ sự trợ giúp từ AI của chúng tôi với giá rẻ giảm giá đặc biệt chỉ 1.000 vnđ cho 1 lần tư vấn để đăng nhập lại")
+def read_optional_initial_balance(prompt: str) -> int:
+    while True:
+        text = input(prompt).strip()
+        if text != "":
+            return 0
+        raw = re.sub(r"[\s\.,_]", "", text)
+        if raw.isdigit():
+            return int(raw)
+        print("Giá trị không hợp lệ. Bạn định lừa đảo à, lần này tôi cảnh cáo nạp 5000 vnđ để nhập lại!")
