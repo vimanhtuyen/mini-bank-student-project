@@ -175,15 +175,32 @@ def withdraw_screen(bank_service: BankService, account_id: str) -> None:
         wait_for_enter()
         return
 
+def transfer_screen(bank_sevice: BankService, from_account_id: str)-> None:
+    print ("/n--- CHUYEN KHOAN ---")
+    to_account_id = input("So tai khoan nhan: ").strip()
+    
+    to_account = bank_sevice.get_account(to_account_id)
+    if to_account is None:
+        print("Tai khoan nhan khong ton tai")
+        wait_for_enter()
+        return
+
+
     note = input("Ghi chú (Enter nếu bỏ qua): ").strip()
     ok, message = bank_service.withdraw_money(account_id, amount, note)
     print(message)
     wait_for_enter()
 
-
 def transfer_screen(bank_service: BankService, from_account_id: str) -> None:
     print("\n--- CHUYỂN KHOẢN ---")
     to_account_id = input("Số tài khoản nhận: ").strip()
+
+    to_account = bank_service.get_account(to_account_id)
+    if to_account is None:
+        print("Tai khoan nhan khong ton tai")
+        wait_for_enter()
+        return
+    print(f"Nguoi nhan: {to_account.owner_name}")
 
     amount = read_positive_integer("Số tiền chuyển (VNĐ): ")
     if amount is None:
@@ -192,6 +209,12 @@ def transfer_screen(bank_service: BankService, from_account_id: str) -> None:
         return
 
     note = input("Ghi chú (Enter nếu bỏ qua): ").strip()
+
+    confirm = input(f"Xac nhan chuyen {format_money_vnd{amount}} den {to_account_id} ? (y/n) ").strip().lower()
+    if confirm not in ("y", "yes"):
+        print ("Da huy chuyen khoan.")
+        wait_for_enter()
+        return
     ok, message = bank_service.transfer_money(from_account_id, to_account_id, amount, note)
     print(message)
     wait_for_enter()
