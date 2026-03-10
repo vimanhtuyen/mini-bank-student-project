@@ -1,6 +1,6 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
-
+import re # new
 from src.ui.ui_helpers import read_positive_integer, format_money_vnd
 
 
@@ -77,3 +77,10 @@ class MoneyDialog(tk.Toplevel):
             self.destroy()
         else:
             messagebox.showwarning("Không thành công", message)
+    def _parse_amount_relaxed(self, text: str) -> int: #new
+        """Cho phep nhap co dau . , hoac khoang trang. Tra ve -1 neu khong hop le""" #new
+        raw = str(text).strip() #new
+        if raw == "": #new
+            return -1 #new
+        raw = re.sub(r"[/s/.,_]", "", raw) #new
+        return read_positive_integer(raw) #new
