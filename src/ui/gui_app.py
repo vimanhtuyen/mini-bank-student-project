@@ -15,12 +15,21 @@ DATA_FILE_PATH = "data/bank_data.json"
 class MiniBankApplication(tk.Tk):
     def __init__(self):
         super().__init__()
-        self.title("Mini Bank - Tkinter GUI (V2)")
-        self.geometry("760x560")
+        self.title("Not A Bank - B-E1-22")
+        self.geometry(f"{int(1600*3/4)}x{int(900*3/4)}")
         self.resizable(False, False)
 
+        self.last_created_account_id = ""
+        self.last_logged_account_id = ""
         self.setup_style()
         self.setup_menu()
+        self.build_shell_layout()
+        style.configure("App.TFrame", padding = 12)
+        style.configure("Card.TFrame", padding = 12)
+        style.configure("Title.TLabel", font=("Noto Sans Simplified Chinese", 16, "bold"))
+        style.configure("Subtitle.TLabel", font=("Noto Sans Japanesen", 14, "bold"))
+        style.configure("Status.TLabel", font=("Noto Sans Hong Kong", 10, "italic"))
+        style.configure("Strong.TLabel", font=("Noto Sans Traditional Chinese", 10, "bold"))
 
         bank_data = load_bank_data(DATA_FILE_PATH)
         self.bank_service = BankService(bank_data)
