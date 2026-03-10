@@ -1,7 +1,8 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
-import re # new
+
 from src.ui.ui_helpers import read_positive_integer, format_money_vnd
+import re  
 
 
 class MoneyDialog(tk.Toplevel):
@@ -42,21 +43,40 @@ class MoneyDialog(tk.Toplevel):
         ttk.Button(button_frame, text="Đóng", command=self.destroy, width=16).grid(row=0, column=1, padx=8)
 
         self.amount_entry.bind("<KeyRelease>", self.on_amount_change)
+        self.amount_entry.bind("<Return>", lambda e: self.on_submit())  
+        self.bind("<Escape>", lambda e: self.destroy())  
+        self.amount_entry.bind("<FocusOut>", self.on_amount_focus_out)  
+
+        self.amount_entry.focus_set()  
+
+    def _parse_amount_relaxed(self, text: str) -> int:  
+        """Cho phép nhập có dấu . , hoặc khoảng trắng. Trả về -1 nếu không hợp lệ."""  
+        raw = str(text).strip()  
+        if raw == "":  
+            return -1  
+        raw = re.sub(r"[\s\.,_]", "", raw)  
+        return read_positive_integer(raw)  
+
+    def on_amount_focus_out(self, event=None) -> None:  
+        amount = self._parse_amount_relaxed(self.amount_entry.get())  
+        if amount != -1:  
+            self.amount_entry.delete(0, tk.END)  
+            self.amount_entry.insert(0, f"{amount:,}".replace(",", "."))  
 
     def on_amount_change(self, event=None) -> None:
-        amount = read_positive_integer(self.amount_entry.get())
+        amount = self._parse_amount_relaxed(self.amount_entry.get())  
         if amount == -1:
-            self.hint_label.configure(text="Gợi ý: nhập số nguyên dương, ví dụ 50000.")
+            self.hint_label.configure(text="Gợi ý: nhập số nguyên dương, ví dụ 50.000.")
             return
 
         if "Rút" in self.title_text and amount > self.current_balance:
             self.hint_label.configure(text="Cảnh báo: số tiền rút lớn hơn số dư.")
             return
 
-        self.hint_label.configure(text="")
+        self.hint_label.configure(text=f"Bạn nhập: {format_money_vnd(amount)}")  
 
     def on_submit(self) -> None:
-        amount = read_positive_integer(self.amount_entry.get())
+        amount = self._parse_amount_relaxed(self.amount_entry.get())  
         note = self.note_entry.get().strip()
 
         if amount == -1:
@@ -77,10 +97,3 @@ class MoneyDialog(tk.Toplevel):
             self.destroy()
         else:
             messagebox.showwarning("Không thành công", message)
-    def _parse_amount_relaxed(self, text: str) -> int: #new
-        """Cho phep nhap co dau . , hoac khoang trang. Tra ve -1 neu khong hop le""" #new
-        raw = str(text).strip() #new
-        if raw == "": #new
-            return -1 #new
-        raw = re.sub(r"[/s/.,_]", "", raw) #new
-        return read_positive_integer(raw) #new

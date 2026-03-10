@@ -1,26 +1,28 @@
-from typing import Optional
+from typing import Optional, Tuple  
 from src.storage.json_storage import load_bank_data, save_bank_data
 from src.core.bank_service import BankService
+from src.ui.ui_helpers import format_money_vnd, is_pin_format_valid  
+import re  
 
 
 DATA_FILE_PATH = "data/bank_data.json"
 
 
-def format_money_vnd(money: int) -> str:
-    text = f"{money:,}".replace(",", ".")
-    return text + " VNĐ"
-
-
-def read_positive_integer(prompt: str) -> Optional[int]:
-    input_text = input(prompt).strip()
-    if input_text == "":
-        return None
-    if not input_text.isdigit():
-        return None
-    value = int(input_text)
-    if value <= 0:
-        return None
-    return value
+def parse_money_text(text: str) -> Optional[int]:  
+    """Parse số tiền cho CLI.
+    Cho phép nhập 100000 hoặc 100.000 hoặc 100,000 hoặc '100 000'.
+    Trả về None nếu không hợp lệ.
+    """  
+    raw = str(text).strip()  
+    if raw == "":  
+        return None  
+    raw = re.sub(r"[\s\.,_]", "", raw)  
+    if not raw.isdigit():  
+        return None  
+    value = int(raw)  
+    if value <= 0:  
+        return None  
+    return value  
 
 
 def wait_for_enter() -> None:
@@ -61,19 +63,39 @@ def run_application() -> None:
             wait_for_enter()
 
 
+def read_non_empty(prompt: str) -> str:  
+    while True:  
+        value = input(prompt).strip()  
+        if value != "":  
+            return value  
+        print("Không được để trống. Vui lòng nhập lại.")  
+
+
+def read_valid_pin(prompt: str) -> str:  
+    while True:  
+        pin_code = input(prompt).strip()  
+        if is_pin_format_valid(pin_code):  
+            return pin_code  
+        print("PIN không hợp lệ. Yêu cầu 4–6 chữ số.")  
+
+
+def read_optional_initial_balance(prompt: str) -> int:  
+    while True:  
+        text = input(prompt).strip()  
+        if text == "":  
+            return 0  
+        raw = re.sub(r"[\s\.,_]", "", text)  
+        if raw.isdigit():  
+            return int(raw)  
+        print("Số dư ban đầu không hợp lệ. Ví dụ hợp lệ: 0, 100000, 100.000")  
+
+
 def create_account_screen(bank_service: BankService) -> None:
     print("\n--- TẠO TÀI KHOẢN ---")
-    owner_name = input("Tên chủ tài khoản: ").strip()
-    pin_code = input("PIN (4–6 chữ số): ").strip()
+    owner_name = read_non_empty("Tên chủ tài khoản: ")  
+    pin_code = read_valid_pin("PIN (4–6 chữ số): ")  
 
-    initial_balance_value = input("Số dư ban đầu (VNĐ, Enter nếu 0): ").strip()
-    if initial_balance_value == "":
-        initial_balance = 0
-    elif initial_balance_value.isdigit():
-        initial_balance = int(initial_balance_value)
-    else:
-        print("Số dư ban đầu không hợp lệ. Mặc định = 0.")
-        initial_balance = 0
+    initial_balance = read_optional_initial_balance("Số dư ban đầu (VNĐ, Enter nếu 0): ")  
 
     ok, message, account_id = bank_service.create_account(owner_name, pin_code, initial_balance)
     print(message)
@@ -154,9 +176,10 @@ def session_menu(bank_service: BankService, account_id: str) -> None:
 
 def deposit_screen(bank_service: BankService, account_id: str) -> None:
     print("\n--- NẠP TIỀN ---")
-    amount = read_positive_integer("Số tiền nạp (VNĐ): ")
+    amount_text = input("Số tiền nạp (VNĐ): ")  
+    amount = parse_money_text(amount_text)  
     if amount is None:
-        print("Số tiền không hợp lệ.")
+        print("Số tiền không hợp lệ. Ví dụ: 50000 hoặc 50.000")
         wait_for_enter()
         return
 
@@ -168,52 +191,45 @@ def deposit_screen(bank_service: BankService, account_id: str) -> None:
 
 def withdraw_screen(bank_service: BankService, account_id: str) -> None:
     print("\n--- RÚT TIỀN ---")
-    amount = read_positive_integer("Số tiền rút (VNĐ): ")
+    amount_text = input("Số tiền rút (VNĐ): ")  
+    amount = parse_money_text(amount_text)  
     if amount is None:
-        print("Số tiền không hợp lệ.")
+        print("Số tiền không hợp lệ. Ví dụ: 50000 hoặc 50.000")
         wait_for_enter()
         return
-
-def transfer_screen(bank_sevice: BankService, from_account_id: str)-> None:
-    print ("/n--- CHUYEN KHOAN ---")
-    to_account_id = input("So tai khoan nhan: ").strip()
-    
-    to_account = bank_sevice.get_account(to_account_id)
-    if to_account is None:
-        print("Tai khoan nhan khong ton tai")
-        wait_for_enter()
-        return
-
 
     note = input("Ghi chú (Enter nếu bỏ qua): ").strip()
     ok, message = bank_service.withdraw_money(account_id, amount, note)
     print(message)
     wait_for_enter()
 
+
 def transfer_screen(bank_service: BankService, from_account_id: str) -> None:
     print("\n--- CHUYỂN KHOẢN ---")
     to_account_id = input("Số tài khoản nhận: ").strip()
 
-    to_account = bank_service.get_account(to_account_id)
-    if to_account is None:
-        print("Tai khoan nhan khong ton tai")
-        wait_for_enter()
-        return
-    print(f"Nguoi nhan: {to_account.owner_name}")
+    to_account = bank_service.get_account(to_account_id)  
+    if to_account is None:  
+        print("Tài khoản nhận không tồn tại.")  
+        wait_for_enter()  
+        return  
+    print(f"Người nhận: {to_account.owner_name}")  
 
-    amount = read_positive_integer("Số tiền chuyển (VNĐ): ")
+    amount_text = input("Số tiền chuyển (VNĐ): ")  
+    amount = parse_money_text(amount_text)  
     if amount is None:
-        print("Số tiền không hợp lệ.")
+        print("Số tiền không hợp lệ. Ví dụ: 100000 hoặc 100.000")
         wait_for_enter()
         return
 
     note = input("Ghi chú (Enter nếu bỏ qua): ").strip()
 
-    confirm = input(f"Xac nhan chuyen {format_money_vnd{amount}} den {to_account_id} ? (y/n) ").strip().lower()
-    if confirm not in ("y", "yes"):
-        print ("Da huy chuyen khoan.")
-        wait_for_enter()
-        return
+    confirm = input(f"Xác nhận chuyển {format_money_vnd(amount)} đến {to_account_id}? (y/n): ").strip().lower()  
+    if confirm not in ("y", "yes"):  
+        print("Đã hủy chuyển khoản.")  
+        wait_for_enter()  
+        return  
+
     ok, message = bank_service.transfer_money(from_account_id, to_account_id, amount, note)
     print(message)
     wait_for_enter()
@@ -240,7 +256,10 @@ def show_history_screen(bank_service: BankService, account_id: str) -> None:
 
     show_list = history[:limit]
     for index, transaction in enumerate(show_list, start=1):
-        line = f"{index:02d}) {transaction.time_text} | {transaction.transaction_id} | {transaction.transaction_type} | {format_money_vnd(transaction.amount)}"
+        line = (
+            f"{index:02d}) {transaction.time_text} | {transaction.transaction_id} | "
+            f"{transaction.transaction_type} | {format_money_vnd(transaction.amount)}"
+        )
 
         if transaction.transaction_type.startswith("TRANSFER"):
             line += f" | {transaction.from_account_id} -> {transaction.to_account_id}"
