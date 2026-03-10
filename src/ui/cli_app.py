@@ -126,7 +126,7 @@ def session_menu(bank_service: BankService, account_id: str) -> None:
     while True:
         account = bank_service.get_account(account_id)
         if account is None:
-            print("Không tìm thấy tài khoản. Có thể dữ liệu bị lỗi.")
+            print("Không tìm thấy tài khoản. Không thể là do dữ liệu bị lỗi.")
             wait_for_enter()
             return
 
