@@ -105,3 +105,28 @@ class TransferDialog(tk.Toplevel):
             self.destroy()
         else:
             messagebox.showwarning("Không thành công", message)
+    def _parse_amount_relaxed(self, text: str) -> int:
+        raw= str(text).strip() 
+        if raw == "":
+            return -1
+        raw = re.sub(r"[\s\.,_]","",raw)
+        return read_positive_integer(raw)
+    def on_amount_focus_out(self, event=None) -> None:
+        amount = self._parse_amount_relaxed(self.amount_entry.get()) 
+        if amount != -1:
+            self.amount_entry.delete(0, tk. END)
+            self.amount_entry.insert(0, f"{amount:,}".replace(",", ".")) 
+    def on_to_account_change(self, event=None) -> None:
+        to_account_id = self.to_account_entry.get().strip()
+        if to_account_id == "":
+            self.to_name_label.configure(text="Tên người nhận: (chưa nhập)", foreground="gray")
+            return
+    def on_amount_change(self, event=None) -> None:
+        amount = self._parse_amount_relaxed(self.amount_entry.get())
+        if amount == -1:
+            self.hint_label.configure(text="Gợi ý: nhập số nguyên dương, ví dụ 100.000.")
+            return
+        if amount > self.from_balance:
+            self.hint_label.configure(text="Cảnh báo: số tiền chuyển lớn hơn số dư.", foreground="red")
+            return
+        self.hint_label.configure(text=f"Bạn nhập: {format_money_vnd (amount)}", foreground="gray")
