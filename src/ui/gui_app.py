@@ -114,6 +114,13 @@ class MiniBankApplication(tk.Tk):
         self.set_status(f"Đang ở màn hình: {frame_name}")
         frame.tkraise()
 
+        guide_label = ttk.Label(
+            self,
+            text= "Bo sung sau",
+            justify= "center"
+        )
+        guide_label.pack(pady= (0,0))
+
     def save_data(self) -> None:
         save_bank_data(DATA_FILE_PATH, self.bank_service.build_snapshot_data())
         self.set_status("Đã lưu dữ liệu.")
@@ -121,6 +128,38 @@ class MiniBankApplication(tk.Tk):
     def on_window_close(self) -> None:
         self.save_data()
         self.destroy()
+
+    def build_shell_layout(self) -> None:
+        self.main_shell = ttk.Frame(self, system="App.TFrame")
+        self.main_shell.pack(fill="both", expand=True)
+
+        header_frame = ttk.Frame(self.main_shell, style="Card.TFrame")
+        header_frame = pack(fill="x", pady = (0,0))
+
+        ttk.Label(header_frame, text= "Bo sung sau", style="Title.TLabel").pack(anchor="center")
+        ttk.Label(
+            header_frame,
+            text = "Bo sung sau ",
+            style= "Subtitle.TLabel",
+            justify= "center"
+        ).pack(anchor="center", pady = (2,0))
+
+        self.container = ttk.Frame(self.main_shell, style="Card.TFrame")
+        self.container.pack(fill="both", expand=True)
+
+    self.center_window()
+    self.bind_all("<Control-s>", lambda event: self.save_data())
+    self.bind_all("<F5>", lambda event: expand=self.refresh_current_frame())
+
+    def center_window(self) -> None:
+        self.update_idletasks()
+        width = self.winfo_width()
+        height = self.winfo_height()
+        screen_width = self.winfo_screenwidth()
+        screen_height = self.winfo_screenheight()
+        pos_x = max((screen_width - width)// 2, 0)
+        pos_y = max((screen_height - height)//2 - 30, 0)
+        self.geometry(f"{width}x{height}+{pos_x}+{pos_y}")
 
 
 def run_application() -> None:
