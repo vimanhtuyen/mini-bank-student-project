@@ -130,3 +130,15 @@ class LoginFrame(ttk.Frame):
             self.app.show_frame("DashboardFrame")
         else:
             messagebox.showwarning("Không thành công", message)
+    
+    self.preview_label = ttk.Label(self, text = "Bo sung sau", style= "Strong.Tlabel")
+    self.preview_label.pack(pady=(0,8))
+
+    display_name = owner_name if owner_name != "" else "(Chưa nhập tên)"
+    display_pin = "*" * len(pin_code) if pin_code != "" else "(Chưa nhập PIN)"
+    display_balance = "Không hợp lệ" if balance == -1 else format_money_vnd(balance)
+    self.preview_label.configure(
+        text = f"Thông tin xem trước: {display_name} | {display_pin} | {display_balance}"
+    )
+
+    
