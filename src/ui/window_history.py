@@ -175,3 +175,44 @@ class HistoryWindow(tk.Toplevel):
         )
 
         messagebox.showinfo("Chi tiết giao dịch", detail_text)
+    
+    def build_filter(self) -> None:
+        filter_frame = ttk.Labelname = ttk.LabelFrame(self, text = "Tìm kiếm và lọc")
+        filter_frame.pack(fill = "x", padx = 12, pady = 6)
+
+
+    search_entry = ttk.Entry(filter_frame, textvariable= self.search_value, width = 50) #Thay đổi width sau
+    search_entry.bind("<KeyRelease>", lambda event: self.apply_filters())
+
+    filter_update = ttk.Combobox(
+        filter_frame,
+        textvariable = self.filter_value,
+        values=["Tất cả", "Nạp tiền", "Rút tiền", "Chuyển đi", "Nhận tiền"],
+        width = 14,
+        state = "readonly"
+    )
+
+    def show_selected_detail(self, event = None) -> None:
+        selected_items = self.tree.selection()
+        if not selected_items: #len(selected_items) == 0
+            return
+
+        values = self.tree.item(selected_items[0], "values")
+        if not values or values[0] == "-":
+            return
+        
+        messagebox.showinfo(
+            "Chi tiết giao dịch",
+            f"Thời gian: {values[0]}\n"
+            f"Mã giao dịch: {values[1]}\n"
+            f"Loại: {values[2]}\n"
+            f"Số tiền: {values[3]}\n"
+            f"Chi tiết: {values[4]}\n"
+            f"Ghi chú: {values[5]}"
+        )
+
+
+
+
+
+

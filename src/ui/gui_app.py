@@ -26,10 +26,10 @@ class MiniBankApplication(tk.Tk):
         self.build_shell_layout()
         style.configure("App.TFrame", padding = 12)
         style.configure("Card.TFrame", padding = 12)
-        style.configure("Title.TLabel", font=("Noto Sans Simplified Chinese", 16, "bold"))
-        style.configure("Subtitle.TLabel", font=("Noto Sans Japanesen", 14, "bold"))
-        style.configure("Status.TLabel", font=("Noto Sans Hong Kong", 10, "italic"))
-        style.configure("Strong.TLabel", font=("Noto Sans Traditional Chinese", 10, "bold"))
+        style.configure("Title.TLabel", font=("Bitcount Grid Single Ink", 22, "bold"))
+        style.configure("Subtitle.TLabel", font=("Lobster Two", 14, "italic"))
+        style.configure("Status.TLabel", font=("Great Vibes", 10))
+        style.configure("Strong.TLabel", font=("Yellowtail", 12, "bold"))
 
         bank_data = load_bank_data(DATA_FILE_PATH)
         self.bank_service = BankService(bank_data)
@@ -116,10 +116,17 @@ class MiniBankApplication(tk.Tk):
 
         guide_label = ttk.Label(
             self,
+<<<<<<< HEAD
             text = "Bo sung sau",
             justify = "center"
         )
         guide_label.pack(pady = (0,8))
+=======
+            text= "Bo sung sau",
+            justify= "center"
+        )
+        guide_label.pack(pady= (0,0))
+>>>>>>> f7a368f13a77b143aa588a320b7113c2fe37bc65
 
     def save_data(self) -> None:
         save_bank_data(DATA_FILE_PATH, self.bank_service.build_snapshot_data())
@@ -130,6 +137,7 @@ class MiniBankApplication(tk.Tk):
         self.destroy()
 
     def build_shell_layout(self) -> None:
+<<<<<<< HEAD
         self.main_shell = ttk.Frame(self, style="App.TFrame")
         self.main_shell.pack(fill="both", expand=True)
 
@@ -143,14 +151,35 @@ class MiniBankApplication(tk.Tk):
             style = "Subtitle.TLabel",
             justify = "center",
         ).pack(anchor="center", pady=(2,0))
+=======
+        self.main_shell = ttk.Frame(self, system="App.TFrame")
+        self.main_shell.pack(fill="both", expand=True)
+
+        header_frame = ttk.Frame(self.main_shell, style="Card.TFrame")
+        header_frame = pack(fill="x", pady = (0,0))
+
+        ttk.Label(header_frame, text= "Bo sung sau", style="Title.TLabel").pack(anchor="center")
+        ttk.Label(
+            header_frame,
+            text = "Bo sung sau ",
+            style= "Subtitle.TLabel",
+            justify= "center"
+        ).pack(anchor="center", pady = (2,0))
+>>>>>>> f7a368f13a77b143aa588a320b7113c2fe37bc65
 
         self.container = ttk.Frame(self.main_shell, style="Card.TFrame")
         self.container.pack(fill="both", expand=True)
 
+<<<<<<< HEAD
 
     self.center_window()
     self.bind_all("<Control-s>", lambda event: self.save_data())
     self.bind_all("<F5>", lambda event: self.refresh_current_frame())
+=======
+    self.center_window()
+    self.bind_all("<Control-s>", lambda event: self.save_data())
+    self.bind_all("<F5>", lambda event: expand=self.refresh_current_frame())
+>>>>>>> f7a368f13a77b143aa588a320b7113c2fe37bc65
 
     def center_window(self) -> None:
         self.update_idletasks()
@@ -158,6 +187,7 @@ class MiniBankApplication(tk.Tk):
         height = self.winfo_height()
         screen_width = self.winfo_screenwidth()
         screen_height = self.winfo_screenheight()
+<<<<<<< HEAD
         pos_x = max((screen_width - width)//2, 0)
         pos_y = max((screen_height - height)//2 - 30, 0)
         self.geometry(f"{width}x{height}+{pos_x}+{pos_y}")
@@ -168,6 +198,12 @@ class MiniBankApplication(tk.Tk):
 
 
 
+=======
+        pos_x = max((screen_width - width)// 2, 0)
+        pos_y = max((screen_height - height)//2 - 30, 0)
+        self.geometry(f"{width}x{height}+{pos_x}+{pos_y}")
+
+>>>>>>> f7a368f13a77b143aa588a320b7113c2fe37bc65
 
 def run_application() -> None:
     app = MiniBankApplication()
