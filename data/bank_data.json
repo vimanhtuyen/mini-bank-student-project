@@ -1,12 +1,12 @@
 {
   "next_account_id": 100004,
-  "next_transaction_number": 13,
+  "next_transaction_number": 15,
   "accounts": [
     {
       "account_id": "100001",
       "owner_name": "Vi Manh Tuyen",
       "pin_code": "927897",
-      "balance": 7190000,
+      "balance": 5000007189999,
       "created_at": "2026-01-13 14:21:21"
     },
     {
@@ -131,6 +131,24 @@
       "time_text": "2026-01-16 11:12:58",
       "note": "Rut tien",
       "from_account_id": "100003",
+      "to_account_id": null
+    },
+    {
+      "transaction_id": "TRANSACTION_00000013",
+      "transaction_type": "DEPOSIT",
+      "amount": 5000000000000,
+      "time_text": "2026-03-31 20:08:44",
+      "note": "Tien luong",
+      "from_account_id": null,
+      "to_account_id": "100001"
+    },
+    {
+      "transaction_id": "TRANSACTION_00000014",
+      "transaction_type": "WITHDRAW",
+      "amount": 1,
+      "time_text": "2026-03-31 20:27:18",
+      "note": "",
+      "from_account_id": "100001",
       "to_account_id": null
     }
   ]
