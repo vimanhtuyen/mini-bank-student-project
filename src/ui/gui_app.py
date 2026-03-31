@@ -26,7 +26,7 @@ DATA_FILE_PATH = str(PROJECT_ROOT / 'data' / 'bank_data.json')
 class MiniBankApplication(tk.Tk):
     def __init__(self):
         super().__init__()
-        self.title('Mini Bank | Giao diện phong cách BIDV')
+        self.title('Mini Bank')
         self.geometry('1180x760')
         self.resizable(False, False)
         self.configure(bg=BIDV_BACKGROUND)
