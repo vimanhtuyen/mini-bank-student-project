@@ -6,21 +6,21 @@
       "account_id": "100001",
       "owner_name": "Vi Manh Tuyen",
       "pin_code": "927897",
-      "balance": 7190000,
+      "balance": -719000000000000,
       "created_at": "2026-01-13 14:21:21"
     },
     {
       "account_id": "100002",
       "owner_name": "Vu Ngoc Phan",
       "pin_code": "0000",
-      "balance": 17100000,
+      "balance": 873324824836472824674325432,
       "created_at": "2026-01-13 20:07:19"
     },
     {
       "account_id": "100003",
       "owner_name": "Nguyễn Nhật Nam",
       "pin_code": "1111",
-      "balance": 8100000,
+      "balance": 810000,
       "created_at": "2026-01-16 11:06:58"
     }
   ],
