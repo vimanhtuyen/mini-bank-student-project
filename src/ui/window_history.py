@@ -1,218 +1,127 @@
 import tkinter as tk
-from tkinter import ttk, messagebox, filedialog
-import csv
+from tkinter import ttk, messagebox
 
-from src.ui.ui_helpers import (
-    format_money_vnd,
-    get_transaction_type_display,
-    normalize_text_for_search,
-    is_date_yyyy_mm_dd_valid,
-    is_time_in_date_range
-)
+from src.ui.ui_helpers import build_transaction_search_text, format_money_vnd, get_transaction_type_display
+
 
 class HistoryWindow(tk.Toplevel):
-
-    def __init__(self, parent, bank_service, account_id: str):
+    def __init__(self, parent, bank_service, account_id):
         super().__init__(parent)
-        self.title("Lịch sử giao dịch")
-        self.geometry("980x440")
-        self.resizable(True, True)
-
         self.bank_service = bank_service
         self.account_id = str(account_id)
 
-        ttk.Label(self, text="Lịch sử giao dịch", font=("Segoe UI", 12, "bold")).pack(pady=6)
+        self.title(f'Lịch sử giao dịch - {self.account_id}')
+        self.geometry('980x620')
+        self.resizable(False, False)
+        self.transient(parent)
+        self.grab_set()
 
-        control_frame = ttk.Frame(self)
-        control_frame.pack(fill="x", padx=10, pady=4)
+        self.search_var = tk.StringVar()
+        self.summary_var = tk.StringVar(value='')
+        self.filter_var = tk.StringVar(value='Tất cả')
+        self.all_history = []
 
-        ttk.Label(control_frame, text="Lọc loại:").grid(row=0, column=0, padx=6, pady=4, sticky="w")
-        self.filter_value = tk.StringVar(value="Tất cả")
-        self.filter_combo = ttk.Combobox(
-            control_frame,
-            textvariable=self.filter_value,
-            values=["Tất cả", "Nạp tiền", "Rút tiền", "Chuyển đi", "Chuyển đến"],
-            width=14,
-            state="readonly",
-        )
-        self.filter_combo.grid(row=0, column=1, padx=6, pady=4)
+        main = ttk.Frame(self, style='Card.TFrame', padding=(20, 18))
+        main.pack(fill='both', expand=True)
 
-        ttk.Label(control_frame, text="Tìm ghi chú:").grid(row=0, column=2, padx=6, pady=4, sticky="w")
-        self.search_entry = ttk.Entry(control_frame, width=30)
-        self.search_entry.grid(row=0, column=3, padx=6, pady=4)
+        ttk.Label(main, text=f'Lịch sử giao dịch của tài khoản {self.account_id}', style='SectionTitle.TLabel').pack(anchor='w')
+        ttk.Label(main, text='Bạn có thể lọc theo loại giao dịch hoặc tìm kiếm theo thời gian, ghi chú và mã tài khoản.', style='Surface.TLabel', wraplength=860, justify='left').pack(anchor='w', pady=(6, 14))
 
-        ttk.Button(control_frame, text="Làm mới", command=self.refresh_table, width=12).grid(row=0, column=4, padx=6, pady=4)
+        filter_frame = ttk.LabelFrame(main, text='Tìm kiếm và lọc', style='Card.TLabelframe')
+        filter_frame.pack(fill='x')
+        filter_frame.columnconfigure(1, weight=1)
 
-        columns = ("time_text", "transaction_id", "transaction_type", "amount", "detail", "note")
-        self.tree = ttk.Treeview(self, columns=columns, show="headings", height=14)
-        self.tree.pack(fill="both", expand=True, padx=10, pady=8)
+        ttk.Label(filter_frame, text='Từ khóa', style='Surface.TLabel').grid(row=0, column=0, padx=8, pady=8, sticky='w')
+        search_entry = ttk.Entry(filter_frame, textvariable=self.search_var, width=34)
+        search_entry.grid(row=0, column=1, padx=8, pady=8, sticky='ew')
+        search_entry.bind('<KeyRelease>', lambda event: self.apply_filters())
 
-        self.tree.heading("time_text", text="Thời gian")
-        self.tree.heading("transaction_id", text="Mã giao dịch")
-        self.tree.heading("transaction_type", text="Loại")
-        self.tree.heading("amount", text="Số tiền")
-        self.tree.heading("detail", text="Chi tiết")
-        self.tree.heading("note", text="Ghi chú")
+        ttk.Label(filter_frame, text='Loại giao dịch', style='Surface.TLabel').grid(row=0, column=2, padx=8, pady=8, sticky='w')
+        filter_combo = ttk.Combobox(filter_frame, textvariable=self.filter_var, values=['Tất cả', 'Nạp tiền', 'Rút tiền', 'Chuyển đi', 'Nhận tiền', 'Chuyển khoản'], width=18, state='readonly')
+        filter_combo.grid(row=0, column=3, padx=8, pady=8, sticky='w')
+        filter_combo.bind('<<ComboboxSelected>>', lambda event: self.apply_filters())
 
-        self.tree.column("time_text", width=140, anchor="w")
-        self.tree.column("transaction_id", width=150, anchor="w")
-        self.tree.column("transaction_type", width=120, anchor="w")
-        self.tree.column("amount", width=120, anchor="e")
-        self.tree.column("detail", width=260, anchor="w")
-        self.tree.column("note", width=170, anchor="w")
+        ttk.Button(filter_frame, text='Làm mới', command=self.refresh_history, style='Secondary.TButton').grid(row=0, column=4, padx=8, pady=8)
+        ttk.Button(filter_frame, text='Xóa lọc', command=self.clear_filters, style='Light.TButton').grid(row=0, column=5, padx=8, pady=8)
 
-        scrollbar = ttk.Scrollbar(self, orient="vertical", command=self.tree.yview)
+        table_card = ttk.Frame(main, style='Card.TFrame', padding=(0, 14, 0, 0))
+        table_card.pack(fill='both', expand=True)
+
+        columns = ('time', 'type', 'amount', 'note')
+        self.tree = ttk.Treeview(table_card, columns=columns, show='headings', height=16)
+        self.tree.heading('time', text='Thời gian')
+        self.tree.heading('type', text='Loại giao dịch')
+        self.tree.heading('amount', text='Số tiền')
+        self.tree.heading('note', text='Ghi chú')
+        self.tree.column('time', width=170, anchor='center')
+        self.tree.column('type', width=140, anchor='center')
+        self.tree.column('amount', width=150, anchor='e')
+        self.tree.column('note', width=470, anchor='w')
+        self.tree.pack(side='left', fill='both', expand=True)
+
+        scrollbar = ttk.Scrollbar(table_card, orient='vertical', command=self.tree.yview)
+        scrollbar.pack(side='right', fill='y', padx=(10, 0))
         self.tree.configure(yscrollcommand=scrollbar.set)
-        scrollbar.pack(side="right", fill="y")
+        self.tree.bind('<Double-1>', self.show_selected_detail)
 
-        self.filter_combo.bind("<<ComboboxSelected>>", lambda e: self.refresh_table())
-        self.search_entry.bind("<KeyRelease>", lambda e: self.refresh_table())
+        bottom_frame = ttk.Frame(main, style='Card.TFrame')
+        bottom_frame.pack(fill='x', pady=(14, 0))
+        ttk.Label(bottom_frame, textvariable=self.summary_var, style='Strong.TLabel').pack(side='left')
+        ttk.Button(bottom_frame, text='Đóng', command=self.destroy, style='Light.TButton').pack(side='right')
 
-        ttk.Button(self, text="Đóng", command=self.destroy, width=16).pack(pady=6)
+        self.refresh_history()
+        self.center_window()
 
-        self.refresh_table()
+    def center_window(self) -> None:
+        self.update_idletasks()
+        width = self.winfo_width()
+        height = self.winfo_height()
+        screen_width = self.winfo_screenwidth()
+        screen_height = self.winfo_screenheight()
+        x = max((screen_width - width) // 2, 0)
+        y = max((screen_height - height) // 2 - 20, 0)
+        self.geometry(f'{width}x{height}+{x}+{y}')
 
-    def clear_table(self) -> None:
+    def refresh_history(self) -> None:
+        self.all_history = self.bank_service.get_transaction_history(self.account_id)
+        self.apply_filters()
+
+    def clear_filters(self) -> None:
+        self.search_var.set('')
+        self.filter_var.set('Tất cả')
+        self.apply_filters()
+
+    def apply_filters(self) -> None:
+        keyword = self.search_var.get().strip().lower()
+        selected_type = self.filter_var.get().strip()
         for item_id in self.tree.get_children():
             self.tree.delete(item_id)
 
-    def is_match_filter(self, display_type: str) -> bool:
-        selected = self.filter_value.get()
-        if selected == "Tất cả":
-            return True
-        return display_type == selected
-
-    def is_match_search(self, note_text: str) -> bool:
-        keyword = self.search_entry.get().strip().lower()
-        if keyword == "":
-            return True
-        return keyword in str(note_text).lower()
-
-    def refresh_table(self) -> None:
-        self.clear_table()
-
-        history = self.bank_service.get_transaction_history(self.account_id)
-        for transaction in history:
+        filtered_history = []
+        for transaction in self.all_history:
             display_type = get_transaction_type_display(transaction.transaction_type)
-            if not self.is_match_filter(display_type):
+            search_text = build_transaction_search_text(transaction)
+            if selected_type != 'Tất cả' and display_type != selected_type:
                 continue
-            if not self.is_match_search(transaction.note):
+            if keyword != '' and keyword not in search_text and keyword not in display_type.lower():
                 continue
+            filtered_history.append(transaction)
 
-            detail_text = ""
-            if str(transaction.transaction_type).startswith("TRANSFER"):
-                detail_text = f"{transaction.from_account_id} -> {transaction.to_account_id}"
+        for transaction in filtered_history:
+            note_text = str(transaction.note).strip() if str(transaction.note).strip() != '' else '-'
+            self.tree.insert('', 'end', values=(transaction.time_text, get_transaction_type_display(transaction.transaction_type), format_money_vnd(transaction.amount), note_text))
 
-            self.tree.insert(
-                "",
-                "end",
-                values=(
-                    transaction.time_text,
-                    transaction.transaction_id,
-                    display_type,
-                    format_money_vnd(transaction.amount),
-                    detail_text,
-                    transaction.note,
-                ),
-            )
-    def export_csv(self) -> None:
-        transactions = self.get_filtered_transactions()
-        if len(transactions) == 0:
-            messagebox.showinfo("Thông báo", "Không có giao dịch nào để xuất.")
-            return
-        
-        default_name = f"history_{self.account_id}.csv"
-        file_path = filedialog.asksaveasfilename(
-            title="Lưu lịch sử giao dịch",
-            defaultextension=".csv",
-            initialfile=default_name,
-            filetypes=[("CSV files", "*.csv"), ("All files", "*.*")]
-        )
+        if len(filtered_history) == 0:
+            self.tree.insert('', 'end', values=('-', '-', '-', 'Không có giao dịch phù hợp'))
 
-        if not file_path:
-            return
-        
-        try:
-            with open(file_path, "w", newline="", encoding="utf-8") as file:
-                writer = csv.writer(file)
-                writer.writerow(
-                    ["Thời gian", "Mã giao dịch", "Loại", "Số tiền", "Chi tiết", "Ghi chú"]
-                )
-                
-                for transaction in transactions:
-                    display_type = get_transaction_type_display(transaction.transaction_type)
-                    detail_text = ""
+        total_amount = sum(int(getattr(item, 'amount', 0)) for item in filtered_history)
+        self.summary_var.set(f'Số giao dịch hiển thị: {len(filtered_history)} | Tổng giá trị: {format_money_vnd(total_amount)}')
 
-                    if str(transaction.transaction_type).startswith("TRANSFER"):
-                        detail_text = f"{transaction.from_account_id} -> {transaction.to_account_id}"
-
-                    writer.writerow([
-                        transaction.time_text,
-                        transaction.transaction_id,
-                        display_type,
-                        transaction.amount,
-                        detail_text,
-                        transaction.note,
-                    ])
-
-            messagebox.showinfo("Thành công", f"Đã xuất lịch sử giao dịch ra {file_path}") 
-        except Exception:
-            messagebox.showerror("Lỗi", "Có lỗi xảy ra khi xuất file CSV.")
-    
-    def on_double_click(self, event = None) -> None:
-        selected = self.tree.selection()
-        if not selected:
-            return
-        values = self.tree.item(selected[0], "values")
-
-        detail_text = (
-            f"Thời gian: {values[0]}\n"
-            f"Mã giao dịch: {values[1]}\n"
-            f"Loại: {values[2]}\n"
-            f"Số tiền: {values[3]}\n"
-            f"Chi tiết: {values[4]}\n"
-            f"Ghi chú: {values[5]}"
-        )
-
-        messagebox.showinfo("Chi tiết giao dịch", detail_text)
-    
-    def build_filter(self) -> None:
-        filter_frame = ttk.Labelname = ttk.LabelFrame(self, text = "Tìm kiếm và lọc")
-        filter_frame.pack(fill = "x", padx = 12, pady = 6)
-
-
-    search_entry = ttk.Entry(filter_frame, textvariable= self.search_value, width = 50) #Thay đổi width sau
-    search_entry.bind("<KeyRelease>", lambda event: self.apply_filters())
-
-    filter_update = ttk.Combobox(
-        filter_frame,
-        textvariable = self.filter_value,
-        values=["Tất cả", "Nạp tiền", "Rút tiền", "Chuyển đi", "Nhận tiền"],
-        width = 14,
-        state = "readonly"
-    )
-
-    def show_selected_detail(self, event = None) -> None:
+    def show_selected_detail(self, event=None) -> None:
         selected_items = self.tree.selection()
-        if not selected_items: #len(selected_items) == 0
+        if len(selected_items) == 0:
             return
-
-        values = self.tree.item(selected_items[0], "values")
-        if not values or values[0] == "-":
+        values = self.tree.item(selected_items[0], 'values')
+        if not values or values[0] == '-':
             return
-        
-        messagebox.showinfo(
-            "Chi tiết giao dịch",
-            f"Thời gian: {values[0]}\n"
-            f"Mã giao dịch: {values[1]}\n"
-            f"Loại: {values[2]}\n"
-            f"Số tiền: {values[3]}\n"
-            f"Chi tiết: {values[4]}\n"
-            f"Ghi chú: {values[5]}"
-        )
-
-
-
-
-
-
+        messagebox.showinfo('Chi tiết giao dịch', f'Thời gian: {values[0]}\nLoại giao dịch: {values[1]}\nSố tiền: {values[2]}\nGhi chú: {values[3]}')
