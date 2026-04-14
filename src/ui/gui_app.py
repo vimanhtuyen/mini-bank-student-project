@@ -155,7 +155,7 @@ class MiniBankApplication(tk.Tk):
         left_bar = ttk.Frame(app_bar, style='AppBar.TFrame')
         left_bar.pack(side='left', fill='x', expand=True)
         ttk.Label(left_bar, text='MINI BANK', style='BrandTitle.TLabel').pack(anchor='w')
-        ttk.Label(left_bar, text='', style='BrandSub.TLabel').pack(anchor='w', pady=(2, 0))
+        ttk.Label(left_bar, text='Giao diện nâng cấp theo phong cách ngân hàng số xanh – đỏ, bố cục hiện đại và rõ ràng.', style='BrandSub.TLabel').pack(anchor='w', pady=(2, 0))
 
         right_bar = ttk.Frame(app_bar, style='AppBar.TFrame')
         right_bar.pack(side='right')
@@ -278,6 +278,15 @@ class MiniBankApplication(tk.Tk):
         for frame in self.frames.values():
             frame.grid(row=0, column=0, sticky='nsew')
 
+    def refresh_current_frame(self) -> None:
+        current_frame = self.frames.get(self.current_frame_name)
+        if current_frame is not None and hasattr(current_frame, 'refresh_information'):
+            current_frame.refresh_information()
+        if current_frame is not None and hasattr(current_frame, 'on_show'):
+            current_frame.on_show()
+        self.update_quick_summary()
+        self.set_status('Đã làm mới màn hình hiện tại.')
+
     def show_frame(self, frame_name: str) -> None:
         frame = self.frames.get(frame_name)
         if frame is None:
@@ -293,16 +302,8 @@ class MiniBankApplication(tk.Tk):
 
     def save_data(self) -> None:
         save_bank_data(DATA_FILE_PATH, self.bank_service.build_snapshot_data())
-        self.set_status('Dữ liệu đã được lưu.')
         self.update_quick_summary()
-    
-    def refresh_current_frame(self) -> None:
-        current_frame = self.frames.get(self.current_frame_name)
-        if current_frame is not None:
-            current_frame.on_show()
-        self.set_status('Đã làm mới màn hình')
-        self.update_quick_summary()
-        self.update_header_context()
+        self.set_status('Đã lưu dữ liệu.')
 
     def on_window_close(self) -> None:
         self.save_data()

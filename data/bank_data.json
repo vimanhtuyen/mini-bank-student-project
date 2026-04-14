@@ -1,12 +1,12 @@
 {
   "next_account_id": 100004,
-  "next_transaction_number": 13,
+  "next_transaction_number": 16,
   "accounts": [
     {
       "account_id": "100001",
       "owner_name": "Vi Manh Tuyen",
       "pin_code": "927897",
-      "balance": 7190000,
+      "balance": 7690000,
       "created_at": "2026-01-13 14:21:21"
     },
     {
@@ -132,8 +132,50 @@
       "note": "Rut tien",
       "from_account_id": "100003",
       "to_account_id": null
+    },
+    {
+      "transaction_id": "TRANSACTION_00000013",
+      "transaction_type": "DEPOSIT",
+      "amount": 500000,
+      "time_text": "2026-04-14 19:44:29",
+      "note": "nap tien",
+      "from_account_id": null,
+      "to_account_id": "100001"
+    },
+    {
+      "transaction_id": "TRANSACTION_00000014",
+      "transaction_type": "SAVINGS_OPEN",
+      "amount": 7000000,
+      "time_text": "2026-04-14 19:47:09",
+      "note": "Gửi tiết kiệm Quý II | STK_000001 | 12 tháng | 6.50%/năm",
+      "from_account_id": "100001",
+      "to_account_id": null
+    },
+    {
+      "transaction_id": "TRANSACTION_00000015",
+      "transaction_type": "SAVINGS_CLOSE",
+      "amount": 7000000,
+      "time_text": "2026-04-14 19:47:59",
+      "note": "Tất toán STK_000001 trước hạn | chỉ nhận lại tiền gốc",
+      "from_account_id": null,
+      "to_account_id": "100001"
     }
   ],
-  "next_saving_deposit_number": 1,
-  "saving_deposits": []
+  "next_saving_deposit_number": 2,
+  "saving_deposits": [
+    {
+      "deposit_id": "STK_000001",
+      "account_id": "100001",
+      "principal_amount": 7000000,
+      "annual_interest_rate": 6.5,
+      "term_months": 12,
+      "opened_at": "2026-04-14 19:47:09",
+      "maturity_at": "2027-04-14 19:47:09",
+      "status": "CLOSED",
+      "note": "Gửi tiết kiệm Quý II",
+      "settled_at": "2026-04-14 19:47:59",
+      "interest_earned": 0,
+      "maturity_amount": 7000000
+    }
+  ]
 }
