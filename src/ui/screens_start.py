@@ -19,7 +19,7 @@ class StartFrame(ttk.Frame):
         ttk.Label(self.hero_left, text='Ngân hàng số Mini Bank', style='HeroTitle.TLabel').pack(anchor='w')
         self.hero_desc = ttk.Label(
             self.hero_left,
-            text='Nâng cấp mới với tông màu xanh – đỏ, bố cục rõ ràng, thẻ thông tin lớn và luồng giao dịch giống một ứng dụng ngân hàng thực tế.',
+            text='',
             style='HeroText.TLabel',
             wraplength=620,
             justify='left',
@@ -53,21 +53,16 @@ class StartFrame(ttk.Frame):
         self.bottom_grid.pack(fill='both', expand=True)
 
         self.left_card = ttk.Frame(self.bottom_grid, style='Card.TFrame', padding=(22, 18))
-        ttk.Label(self.left_card, text='Những gì học sinh có thể thực hành', style='SectionTitle.TLabel').pack(anchor='w')
+        ttk.Label(self.left_card, text='', style='SectionTitle.TLabel').pack(anchor='w')
         self.practice_label = ttk.Label(
             self.left_card,
-            text='Dự án phù hợp để dạy Tkinter theo hướng dự án nhóm: tổ chức nhiều màn hình, kiểm tra dữ liệu nhập, gọi lớp nghiệp vụ, cập nhật giao diện theo trạng thái và lưu dữ liệu thật.',
+            text='',
             style='Surface.TLabel',
             wraplength=620,
             justify='left',
         )
         self.practice_label.pack(anchor='w', pady=(8, 14))
         for line in [
-            '1. Thiết kế màn hình chào mừng và điều hướng nhiều frame.',
-            '2. Xử lý biểu mẫu mở tài khoản và đăng nhập có gợi ý realtime.',
-            '3. Mở hộp thoại giao dịch và kiểm tra số tiền hợp lệ.',
-            '4. Hiển thị bảng điều khiển, số dư, lịch sử và thống kê nhanh.',
-            '5. Lưu dữ liệu JSON để nhìn được kết quả sau mỗi lần chạy.',
         ]:
             ttk.Label(self.left_card, text=line, style='Surface.TLabel').pack(anchor='w', pady=4)
         button_row = ttk.Frame(self.left_card, style='Card.TFrame')
@@ -88,10 +83,10 @@ class StartFrame(ttk.Frame):
             justify='left',
         )
         self.tip_label.pack(anchor='w', pady=(8, 10))
-        ttk.Label(self.right_card, text='Phiên bản giao diện mới', style='CardTitle.TLabel').pack(anchor='w', pady=(10, 0))
+        ttk.Label(self.right_card, text='', style='CardTitle.TLabel').pack(anchor='w', pady=(10, 0))
         ttk.Label(
             self.right_card,
-            text='• Header xanh đậm kiểu ngân hàng\n• Nút hành động đỏ nổi bật\n• Dashboard dạng thẻ thông tin\n• Hộp thoại giao dịch trực quan hơn',
+            text='',
             style='Surface.TLabel',
             justify='left',
         ).pack(anchor='w', pady=(8, 0))

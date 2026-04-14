@@ -155,7 +155,7 @@ class MiniBankApplication(tk.Tk):
         left_bar = ttk.Frame(app_bar, style='AppBar.TFrame')
         left_bar.pack(side='left', fill='x', expand=True)
         ttk.Label(left_bar, text='MINI BANK', style='BrandTitle.TLabel').pack(anchor='w')
-        ttk.Label(left_bar, text='Giao diện nâng cấp theo phong cách ngân hàng số xanh – đỏ, bố cục hiện đại và rõ ràng.', style='BrandSub.TLabel').pack(anchor='w', pady=(2, 0))
+        ttk.Label(left_bar, text='', style='BrandSub.TLabel').pack(anchor='w', pady=(2, 0))
 
         right_bar = ttk.Frame(app_bar, style='AppBar.TFrame')
         right_bar.pack(side='right')
