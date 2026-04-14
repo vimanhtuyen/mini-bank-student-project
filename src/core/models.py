@@ -3,9 +3,13 @@ from datetime import datetime
 from typing import Optional, Dict, Any
 
 
+def get_current_datetime() -> datetime:
+    return datetime.now()
+
+
 def get_current_time_text() -> str:
     """Trả về thời gian hiện tại theo định dạng dễ đọc."""
-    return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    return get_current_datetime().strftime("%Y-%m-%d %H:%M:%S")
 
 
 @dataclass
@@ -41,7 +45,7 @@ class Account:
 class Transaction:
     """Thông tin một giao dịch."""
     transaction_id: str
-    transaction_type: str  # DEPOSIT, WITHDRAW, TRANSFER_IN, TRANSFER_OUT
+    transaction_type: str  # DEPOSIT, WITHDRAW, TRANSFER_IN, TRANSFER_OUT, SAVINGS_OPEN, SAVINGS_CLOSE
     amount: int
     time_text: str
     note: str
@@ -69,4 +73,59 @@ class Transaction:
             note=str(data.get("note", "")),
             from_account_id=data.get("from_account_id"),
             to_account_id=data.get("to_account_id"),
+        )
+
+
+@dataclass
+class SavingDeposit:
+    """Thông tin một sổ tiết kiệm."""
+    deposit_id: str
+    account_id: str
+    principal_amount: int
+    annual_interest_rate: float
+    term_months: int
+    opened_at: str
+    maturity_at: str
+    status: str
+    note: str
+    settled_at: Optional[str] = None
+    interest_earned: int = 0
+    maturity_amount: int = 0
+
+    def to_dictionary(self) -> Dict[str, Any]:
+        return {
+            "deposit_id": self.deposit_id,
+            "account_id": self.account_id,
+            "principal_amount": self.principal_amount,
+            "annual_interest_rate": self.annual_interest_rate,
+            "term_months": self.term_months,
+            "opened_at": self.opened_at,
+            "maturity_at": self.maturity_at,
+            "status": self.status,
+            "note": self.note,
+            "settled_at": self.settled_at,
+            "interest_earned": self.interest_earned,
+            "maturity_amount": self.maturity_amount,
+        }
+
+    @staticmethod
+    def from_dictionary(data: Dict[str, Any]) -> "SavingDeposit":
+        principal_amount = int(data.get("principal_amount", 0))
+        annual_interest_rate = float(data.get("annual_interest_rate", 0.0))
+        term_months = int(data.get("term_months", 0))
+        interest_earned = int(data.get("interest_earned", 0))
+        maturity_amount = int(data.get("maturity_amount", principal_amount + interest_earned))
+        return SavingDeposit(
+            deposit_id=str(data["deposit_id"]),
+            account_id=str(data["account_id"]),
+            principal_amount=principal_amount,
+            annual_interest_rate=annual_interest_rate,
+            term_months=term_months,
+            opened_at=str(data.get("opened_at", get_current_time_text())),
+            maturity_at=str(data.get("maturity_at", get_current_time_text())),
+            status=str(data.get("status", "ACTIVE")),
+            note=str(data.get("note", "")),
+            settled_at=data.get("settled_at"),
+            interest_earned=interest_earned,
+            maturity_amount=maturity_amount,
         )

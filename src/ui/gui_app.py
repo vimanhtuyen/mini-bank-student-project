@@ -17,6 +17,8 @@ from src.ui.ui_helpers import (
     BIDV_RED,
     BIDV_SURFACE,
     BIDV_TEXT,
+    clamp_window_size,
+    center_window,
 )
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -26,10 +28,13 @@ DATA_FILE_PATH = str(PROJECT_ROOT / 'data' / 'bank_data.json')
 class MiniBankApplication(tk.Tk):
     def __init__(self):
         super().__init__()
-        self.title('Mini Bank')
-        self.geometry('1180x760')
-        self.resizable(False, False)
+        self.title('Mini Bank | Giao diện phong cách BIDV')
         self.configure(bg=BIDV_BACKGROUND)
+        width, height = clamp_window_size(self, 1320, 860, min_width=980, min_height=680, margin_x=60, margin_y=80)
+        self.geometry(f'{width}x{height}')
+        self.minsize(980, 680)
+        self.resizable(True, True)
+        self.is_fullscreen = False
 
         self.last_created_account_id = ''
         self.last_login_account_id = ''
@@ -49,10 +54,13 @@ class MiniBankApplication(tk.Tk):
 
         self.update_quick_summary()
         self.show_frame('StartFrame')
-        self.center_window()
+        center_window(self, width=width, height=height)
 
         self.bind_all('<Control-s>', lambda event: self.save_data())
         self.bind_all('<F5>', lambda event: self.refresh_current_frame())
+        self.bind_all('<F11>', lambda event: self.toggle_fullscreen())
+        self.bind_all('<Escape>', self._handle_escape)
+        self.bind_all('<Control-m>', lambda event: self.toggle_maximize())
         self.protocol('WM_DELETE_WINDOW', self.on_window_close)
 
     def setup_style(self) -> None:
@@ -120,6 +128,12 @@ class MiniBankApplication(tk.Tk):
         file_menu.add_command(label='Thoát', command=self.on_window_close)
         menu_bar.add_cascade(label='Tệp', menu=file_menu)
 
+        view_menu = tk.Menu(menu_bar, tearoff=0)
+        view_menu.add_command(label='Phóng to cửa sổ', command=self.maximize_window)
+        view_menu.add_command(label='Khôi phục kích thước', command=self.restore_window)
+        view_menu.add_command(label='Toàn màn hình (F11)', command=self.toggle_fullscreen)
+        menu_bar.add_cascade(label='Hiển thị', menu=view_menu)
+
         help_menu = tk.Menu(menu_bar, tearoff=0)
         help_menu.add_command(label='Hướng dẫn', command=self.show_help)
         help_menu.add_command(label='Giới thiệu', command=self.show_about)
@@ -141,7 +155,7 @@ class MiniBankApplication(tk.Tk):
         left_bar = ttk.Frame(app_bar, style='AppBar.TFrame')
         left_bar.pack(side='left', fill='x', expand=True)
         ttk.Label(left_bar, text='MINI BANK', style='BrandTitle.TLabel').pack(anchor='w')
-        ttk.Label(left_bar, text='', style='BrandSub.TLabel').pack(anchor='w', pady=(2, 0))
+        ttk.Label(left_bar, text='Giao diện nâng cấp theo phong cách ngân hàng số xanh – đỏ, bố cục hiện đại và rõ ràng.', style='BrandSub.TLabel').pack(anchor='w', pady=(2, 0))
 
         right_bar = ttk.Frame(app_bar, style='AppBar.TFrame')
         right_bar.pack(side='right')
@@ -171,11 +185,12 @@ class MiniBankApplication(tk.Tk):
         text = (
             '1) Tạo tài khoản với tên, PIN và số dư ban đầu.\n'
             '2) Đăng nhập bằng số tài khoản và PIN.\n'
-            '3) Trong bảng điều khiển, bạn có thể nạp tiền, rút tiền, chuyển khoản và xem lịch sử.\n'
-            '4) Dữ liệu được lưu khi thao tác thành công hoặc khi thoát chương trình.\n'
-            '5) Phím tắt: Ctrl+S để lưu, F5 để làm mới màn hình hiện tại.'
+            '3) Trong bảng điều khiển, bạn có thể nạp tiền, rút tiền, chuyển khoản, gửi tiết kiệm và xem lịch sử.\n'
+            '4) Có thể kéo giãn cửa sổ, phóng to hoặc nhấn F11 để toàn màn hình.\n'
+            '5) Dữ liệu được lưu khi thao tác thành công hoặc khi thoát chương trình.\n'
+            '6) Phím tắt: Ctrl+S để lưu, F5 để làm mới, Ctrl+M để phóng to, F11 để toàn màn hình.'
         )
-        messagebox.showinfo('Hướng dẫn nhanh', text)
+        messagebox.showinfo('Hướng dẫn nhanh', text, parent=self)
 
     def show_about(self) -> None:
         messagebox.showinfo(
@@ -183,6 +198,7 @@ class MiniBankApplication(tk.Tk):
             'Mini Bank - bản nâng cấp giao diện phong cách BIDV.\n'
             'Dự án giữ nguyên lõi nghiệp vụ nhưng thay mới giao diện, bảng điều khiển và các hộp thoại giao dịch.\n\n'
             f'Tệp dữ liệu hiện dùng:\n{DATA_FILE_PATH}',
+            parent=self,
         )
 
     def set_status(self, text: str) -> None:
@@ -208,18 +224,51 @@ class MiniBankApplication(tk.Tk):
     def update_quick_summary(self) -> None:
         account_count = len(self.bank_service.accounts_by_id)
         transaction_count = len(self.bank_service.transaction_list)
-        self.quick_summary_text.set(f'Tài khoản: {account_count} | Giao dịch: {transaction_count}')
+        saving_count = len(self.bank_service.saving_deposits)
+        self.quick_summary_text.set(f'Tài khoản: {account_count} | Giao dịch: {transaction_count} | Sổ tiết kiệm: {saving_count}')
         self.update_header_context()
 
-    def center_window(self) -> None:
-        self.update_idletasks()
-        width = self.winfo_width()
-        height = self.winfo_height()
-        screen_width = self.winfo_screenwidth()
-        screen_height = self.winfo_screenheight()
-        pos_x = max((screen_width - width) // 2, 0)
-        pos_y = max((screen_height - height) // 2 - 20, 0)
-        self.geometry(f'{width}x{height}+{pos_x}+{pos_y}')
+    def maximize_window(self) -> None:
+        try:
+            self.state('zoomed')
+        except Exception:
+            screen_width = self.winfo_screenwidth()
+            screen_height = self.winfo_screenheight()
+            self.geometry(f'{screen_width}x{screen_height}+0+0')
+        self.set_status('Đã phóng to cửa sổ.')
+
+    def restore_window(self) -> None:
+        self.attributes('-fullscreen', False)
+        self.is_fullscreen = False
+        try:
+            self.state('normal')
+        except Exception:
+            pass
+        width, height = clamp_window_size(self, 1320, 860, min_width=980, min_height=680, margin_x=60, margin_y=80)
+        center_window(self, width=width, height=height)
+        self.set_status('Đã khôi phục kích thước cửa sổ.')
+
+    def toggle_maximize(self) -> None:
+        if self.attributes('-fullscreen'):
+            return
+        try:
+            if self.state() == 'zoomed':
+                self.restore_window()
+            else:
+                self.maximize_window()
+        except Exception:
+            self.maximize_window()
+
+    def toggle_fullscreen(self) -> None:
+        self.is_fullscreen = not bool(self.is_fullscreen)
+        self.attributes('-fullscreen', self.is_fullscreen)
+        self.set_status('Đã bật toàn màn hình.' if self.is_fullscreen else 'Đã tắt toàn màn hình.')
+
+    def _handle_escape(self, event=None):
+        if self.is_fullscreen:
+            self.toggle_fullscreen()
+            return 'break'
+        return None
 
     def create_frames(self) -> None:
         self.frames['StartFrame'] = StartFrame(self.container, self)

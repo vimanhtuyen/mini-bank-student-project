@@ -1,5 +1,8 @@
+from calendar import monthrange
+from datetime import datetime
 from typing import Dict, Any, List, Optional, Tuple
-from src.core.models import Account, Transaction, get_current_time_text
+
+from src.core.models import Account, SavingDeposit, Transaction, get_current_datetime, get_current_time_text
 
 
 class BankService:
@@ -8,8 +11,8 @@ class BankService:
     - Tạo tài khoản
     - Xác thực đăng nhập
     - Nạp / Rút / Chuyển khoản
-    - Lấy số dư
-    - Lấy lịch sử giao dịch
+    - Gửi tiết kiệm theo lãi suất
+    - Lấy số dư và lịch sử giao dịch
     """
 
     def __init__(self, bank_data: Dict[str, Any]):
@@ -17,6 +20,7 @@ class BankService:
 
         self.accounts_by_id: Dict[str, Account] = {}
         self.transaction_list: List[Transaction] = []
+        self.saving_deposits: List[SavingDeposit] = []
 
         for account_dict in self.bank_data.get("accounts", []):
             account = Account.from_dictionary(account_dict)
@@ -25,6 +29,10 @@ class BankService:
         for transaction_dict in self.bank_data.get("transactions", []):
             transaction = Transaction.from_dictionary(transaction_dict)
             self.transaction_list.append(transaction)
+
+        for saving_dict in self.bank_data.get("saving_deposits", []):
+            saving_deposit = SavingDeposit.from_dictionary(saving_dict)
+            self.saving_deposits.append(saving_deposit)
 
     # -------------------------
     # Các hàm kiểm tra dữ liệu
@@ -43,6 +51,57 @@ class BankService:
             return False
         return True
 
+    def is_interest_rate_valid(self, annual_interest_rate: float) -> bool:
+        try:
+            rate = float(annual_interest_rate)
+        except Exception:
+            return False
+        return 0 < rate <= 100
+
+    def is_term_months_valid(self, term_months: int) -> bool:
+        return isinstance(term_months, int) and term_months > 0
+
+    # -------------------------
+    # Hàm tiện ích cho tiết kiệm
+    # -------------------------
+    def parse_time_text(self, time_text: str) -> datetime:
+        return datetime.strptime(str(time_text), "%Y-%m-%d %H:%M:%S")
+
+    def add_months(self, time_text: str, months: int) -> str:
+        base_time = self.parse_time_text(time_text)
+        total_month = base_time.month - 1 + int(months)
+        target_year = base_time.year + total_month // 12
+        target_month = total_month % 12 + 1
+        target_day = min(base_time.day, monthrange(target_year, target_month)[1])
+        target_time = base_time.replace(year=target_year, month=target_month, day=target_day)
+        return target_time.strftime("%Y-%m-%d %H:%M:%S")
+
+    def calculate_saving_interest(self, principal_amount: int, annual_interest_rate: float, term_months: int) -> int:
+        interest_value = int(round(int(principal_amount) * float(annual_interest_rate) * int(term_months) / 1200))
+        return max(interest_value, 0)
+
+    def is_saving_matured(self, saving_deposit: SavingDeposit) -> bool:
+        return get_current_datetime() >= self.parse_time_text(saving_deposit.maturity_at)
+
+    def get_saving_settlement_preview(self, saving_deposit: SavingDeposit) -> Dict[str, Any]:
+        if self.is_saving_matured(saving_deposit):
+            interest_earned = int(saving_deposit.interest_earned)
+            payout_amount = int(saving_deposit.maturity_amount)
+            return {
+                "is_matured": True,
+                "interest_earned": interest_earned,
+                "payout_amount": payout_amount,
+                "settlement_type": "ON_TIME",
+                "message": "Sổ đã đến hạn, sẽ nhận cả gốc và lãi.",
+            }
+        return {
+            "is_matured": False,
+            "interest_earned": 0,
+            "payout_amount": int(saving_deposit.principal_amount),
+            "settlement_type": "EARLY",
+            "message": "Sổ chưa đến hạn, tất toán trước hạn chỉ nhận lại tiền gốc.",
+        }
+
     # -------------------------
     # Tạo ID
     # -------------------------
@@ -56,12 +115,18 @@ class BankService:
         self.bank_data["next_transaction_number"] = number + 1
         return f"TRANSACTION_{number:08d}"
 
+    def create_new_saving_deposit_id(self) -> str:
+        number = int(self.bank_data["next_saving_deposit_number"])
+        self.bank_data["next_saving_deposit_number"] = number + 1
+        return f"STK_{number:06d}"
+
     # -------------------------
     # Đồng bộ dữ liệu để lưu file
     # -------------------------
     def build_snapshot_data(self) -> Dict[str, Any]:
         self.bank_data["accounts"] = [account.to_dictionary() for account in self.accounts_by_id.values()]
         self.bank_data["transactions"] = [transaction.to_dictionary() for transaction in self.transaction_list]
+        self.bank_data["saving_deposits"] = [saving.to_dictionary() for saving in self.saving_deposits]
         return self.bank_data
 
     # -------------------------
@@ -216,6 +281,141 @@ class BankService:
 
         return True, "Chuyển khoản thành công."
 
+    def create_saving_deposit(
+        self,
+        account_id: str,
+        principal_amount: int,
+        annual_interest_rate: float,
+        term_months: int,
+        note: str,
+    ) -> Tuple[bool, str, Optional[str]]:
+        account = self.get_account(account_id)
+        if account is None:
+            return False, "Không tồn tại số tài khoản.", None
+
+        if not self.is_amount_valid(principal_amount):
+            return False, "Số tiền gửi tiết kiệm phải là số nguyên dương.", None
+
+        if not self.is_interest_rate_valid(annual_interest_rate):
+            return False, "Lãi suất phải lớn hơn 0 và không vượt quá 100%/năm.", None
+
+        if not self.is_term_months_valid(term_months):
+            return False, "Kỳ hạn phải là số nguyên dương theo tháng.", None
+
+        if int(principal_amount) > account.balance:
+            return False, "Không đủ số dư để mở sổ tiết kiệm.", None
+
+        opened_at = get_current_time_text()
+        maturity_at = self.add_months(opened_at, int(term_months))
+        interest_earned = self.calculate_saving_interest(principal_amount, annual_interest_rate, term_months)
+        maturity_amount = int(principal_amount) + int(interest_earned)
+        deposit_id = self.create_new_saving_deposit_id()
+
+        account.balance = int(account.balance) - int(principal_amount)
+
+        saving_deposit = SavingDeposit(
+            deposit_id=deposit_id,
+            account_id=str(account_id),
+            principal_amount=int(principal_amount),
+            annual_interest_rate=float(annual_interest_rate),
+            term_months=int(term_months),
+            opened_at=opened_at,
+            maturity_at=maturity_at,
+            status="ACTIVE",
+            note=note.strip(),
+            settled_at=None,
+            interest_earned=int(interest_earned),
+            maturity_amount=int(maturity_amount),
+        )
+        self.saving_deposits.append(saving_deposit)
+
+        open_note = note.strip()
+        if open_note == "":
+            open_note = f"Mở sổ {deposit_id} | {term_months} tháng | {annual_interest_rate:.2f}%/năm"
+        else:
+            open_note = f"{open_note} | {deposit_id} | {term_months} tháng | {annual_interest_rate:.2f}%/năm"
+
+        self.add_transaction(
+            transaction_type="SAVINGS_OPEN",
+            amount=int(principal_amount),
+            note=open_note,
+            from_account_id=account.account_id,
+            to_account_id=None,
+        )
+        return True, f"Mở sổ tiết kiệm thành công: {deposit_id}", deposit_id
+
+    def get_saving_deposit(self, account_id: str, deposit_id: str) -> Optional[SavingDeposit]:
+        for saving_deposit in self.saving_deposits:
+            if saving_deposit.account_id == str(account_id) and saving_deposit.deposit_id == str(deposit_id):
+                return saving_deposit
+        return None
+
+    def get_saving_deposits(self, account_id: str, only_active: bool = False) -> List[SavingDeposit]:
+        result = []
+        for saving_deposit in self.saving_deposits:
+            if saving_deposit.account_id != str(account_id):
+                continue
+            if only_active and str(saving_deposit.status).upper() != "ACTIVE":
+                continue
+            result.append(saving_deposit)
+        result.sort(key=lambda item: item.opened_at, reverse=True)
+        return result
+
+    def settle_saving_deposit(self, account_id: str, deposit_id: str) -> Tuple[bool, str]:
+        account = self.get_account(account_id)
+        if account is None:
+            return False, "Không tồn tại số tài khoản."
+
+        saving_deposit = self.get_saving_deposit(account_id, deposit_id)
+        if saving_deposit is None:
+            return False, "Không tìm thấy sổ tiết kiệm."
+
+        if str(saving_deposit.status).upper() != "ACTIVE":
+            return False, "Sổ tiết kiệm này đã được tất toán trước đó."
+
+        preview = self.get_saving_settlement_preview(saving_deposit)
+        payout_amount = int(preview["payout_amount"])
+        interest_earned = int(preview["interest_earned"])
+        settlement_type = str(preview["settlement_type"])
+
+        account.balance = int(account.balance) + payout_amount
+        saving_deposit.status = "CLOSED"
+        saving_deposit.settled_at = get_current_time_text()
+        saving_deposit.interest_earned = interest_earned
+        saving_deposit.maturity_amount = payout_amount
+
+        if settlement_type == "ON_TIME":
+            note = (
+                f"Tất toán {saving_deposit.deposit_id} đúng hạn | "
+                f"gốc {saving_deposit.principal_amount} | lãi {interest_earned}"
+            )
+        else:
+            note = f"Tất toán {saving_deposit.deposit_id} trước hạn | chỉ nhận lại tiền gốc"
+
+        self.add_transaction(
+            transaction_type="SAVINGS_CLOSE",
+            amount=payout_amount,
+            note=note,
+            from_account_id=None,
+            to_account_id=account.account_id,
+        )
+
+        if settlement_type == "ON_TIME":
+            return True, "Tất toán sổ tiết kiệm thành công. Bạn đã nhận cả gốc và lãi."
+        return True, "Tất toán trước hạn thành công. Bạn chỉ nhận lại tiền gốc."
+
+    def get_savings_summary(self, account_id: str) -> Dict[str, int]:
+        active_deposits = self.get_saving_deposits(account_id, only_active=True)
+        total_principal = sum(int(item.principal_amount) for item in active_deposits)
+        total_interest = sum(int(item.interest_earned) for item in active_deposits)
+        total_maturity = sum(int(item.maturity_amount) for item in active_deposits)
+        return {
+            "active_count": len(active_deposits),
+            "total_principal": total_principal,
+            "total_interest": total_interest,
+            "total_maturity": total_maturity,
+        }
+
     def get_transaction_history(self, account_id: str) -> List[Transaction]:
         account_id_text = str(account_id)
         history: List[Transaction] = []
@@ -224,6 +424,5 @@ class BankService:
             if transaction.from_account_id == account_id_text or transaction.to_account_id == account_id_text:
                 history.append(transaction)
 
-        # Sắp xếp mới nhất trước (theo time_text dạng YYYY-MM-DD HH:MM:SS)
         history.sort(key=lambda item: item.time_text, reverse=True)
         return history

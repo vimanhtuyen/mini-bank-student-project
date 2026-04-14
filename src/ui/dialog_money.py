@@ -2,15 +2,14 @@ import re
 import tkinter as tk
 from tkinter import ttk, messagebox
 
-from src.ui.ui_helpers import format_money_vnd, read_positive_integer
+from src.ui.ui_helpers import apply_responsive_toplevel, center_window, format_money_vnd, read_positive_integer
 
 
 class MoneyDialog(tk.Toplevel):
     def __init__(self, parent, title_text: str, current_balance: int, submit_callback):
         super().__init__(parent)
         self.title(title_text)
-        self.geometry('560x430')
-        self.resizable(False, False)
+        apply_responsive_toplevel(self, parent=parent, default_width=640, default_height=460, min_width=560, min_height=430)
         self.transient(parent)
         self.grab_set()
 
@@ -57,28 +56,21 @@ class MoneyDialog(tk.Toplevel):
         button_frame = ttk.Frame(main, style='Card.TFrame')
         button_frame.pack(anchor='e')
         ttk.Button(button_frame, text='Xác nhận', command=self.on_submit, style='Primary.TButton').grid(row=0, column=0, padx=(0, 10))
-        ttk.Button(button_frame, text='Đóng', command=self.destroy, style='Light.TButton').grid(row=0, column=1)
+        ttk.Button(button_frame, text='Làm trống', command=self.clear_form, style='Secondary.TButton').grid(row=0, column=1, padx=(0, 10))
+        ttk.Button(button_frame, text='Đóng', command=self.destroy, style='Light.TButton').grid(row=0, column=2)
 
         self.amount_entry.bind('<KeyRelease>', self.on_amount_change)
         self.note_entry.bind('<KeyRelease>', self.on_note_change)
         self.amount_entry.bind('<Return>', lambda event: self.on_submit())
+        self.amount_entry.bind('<KP_Enter>', lambda event: self.on_submit())
         self.note_entry.bind('<Return>', lambda event: self.on_submit())
+        self.note_entry.bind('<KP_Enter>', lambda event: self.on_submit())
         self.amount_entry.bind('<FocusOut>', self.on_amount_focus_out)
         self.bind('<Escape>', lambda event: self.destroy())
         self.amount_entry.focus_set()
 
-        self.center_window()
+        center_window(self, parent=parent)
         self.update_preview()
-
-    def center_window(self) -> None:
-        self.update_idletasks()
-        width = self.winfo_width()
-        height = self.winfo_height()
-        screen_width = self.winfo_screenwidth()
-        screen_height = self.winfo_screenheight()
-        pos_x = max((screen_width - width) // 2, 0)
-        pos_y = max((screen_height - height) // 2 - 20, 0)
-        self.geometry(f'{width}x{height}+{pos_x}+{pos_y}')
 
     def _parse_amount_relaxed(self, text: str) -> int:
         raw = str(text).strip()
@@ -86,6 +78,13 @@ class MoneyDialog(tk.Toplevel):
             return -1
         raw = re.sub(r'[\s\.,_]', '', raw)
         return read_positive_integer(raw)
+
+    def clear_form(self) -> None:
+        self.amount_entry.delete(0, tk.END)
+        self.note_entry.delete(0, tk.END)
+        self.amount_entry.focus_set()
+        self.on_amount_change()
+        self.on_note_change()
 
     def set_quick_amount(self, amount: int) -> None:
         self.amount_entry.delete(0, tk.END)
@@ -133,10 +132,10 @@ class MoneyDialog(tk.Toplevel):
         amount = self._parse_amount_relaxed(self.amount_entry.get())
         note = self.note_entry.get().strip()
         if amount == -1:
-            messagebox.showwarning('Lỗi nhập liệu', 'Số tiền phải là số nguyên dương.')
+            messagebox.showwarning('Lỗi nhập liệu', 'Số tiền phải là số nguyên dương.', parent=self)
             return
         if self.is_withdraw and amount > self.current_balance:
-            messagebox.showwarning('Không đủ số dư', 'Số tiền rút lớn hơn số dư hiện tại.')
+            messagebox.showwarning('Không đủ số dư', 'Số tiền rút lớn hơn số dư hiện tại.', parent=self)
             return
         balance_after = self.current_balance - amount if self.is_withdraw else self.current_balance + amount
         note_display = note if note else '(không có)'
@@ -145,12 +144,12 @@ class MoneyDialog(tk.Toplevel):
             f'Ghi chú: {note_display}\n'
             f'Số dư sau giao dịch: {format_money_vnd(balance_after)}'
         )
-        confirm = messagebox.askyesno('Xác nhận', confirm_text)
+        confirm = messagebox.askyesno('Xác nhận', confirm_text, parent=self)
         if not confirm:
             return
         ok, message = self.submit_callback(amount, note)
         if ok:
-            messagebox.showinfo('Thành công', message)
+            messagebox.showinfo('Thành công', message, parent=self)
             self.destroy()
         else:
-            messagebox.showwarning('Không thành công', message)
+            messagebox.showwarning('Không thành công', message, parent=self)

@@ -2,15 +2,14 @@ import re
 import tkinter as tk
 from tkinter import ttk, messagebox
 
-from src.ui.ui_helpers import format_money_vnd, read_positive_integer
+from src.ui.ui_helpers import apply_responsive_toplevel, center_window, format_money_vnd, read_positive_integer
 
 
 class TransferDialog(tk.Toplevel):
     def __init__(self, parent, bank_service, from_account_id: str, success_callback):
         super().__init__(parent)
         self.title('Chuyển khoản')
-        self.geometry('680x560')
-        self.resizable(False, False)
+        apply_responsive_toplevel(self, parent=parent, default_width=760, default_height=600, min_width=680, min_height=540)
         self.transient(parent)
         self.grab_set()
 
@@ -89,26 +88,19 @@ class TransferDialog(tk.Toplevel):
         self.amount_entry.bind('<KeyRelease>', self.on_amount_change)
         self.note_entry.bind('<KeyRelease>', self.on_note_change)
         self.to_account_entry.bind('<Return>', lambda event: self.on_submit())
+        self.to_account_entry.bind('<KP_Enter>', lambda event: self.on_submit())
         self.amount_entry.bind('<Return>', lambda event: self.on_submit())
+        self.amount_entry.bind('<KP_Enter>', lambda event: self.on_submit())
         self.note_entry.bind('<Return>', lambda event: self.on_submit())
+        self.note_entry.bind('<KP_Enter>', lambda event: self.on_submit())
         self.amount_entry.bind('<FocusOut>', self.on_amount_focus_out)
         self.bind('<Escape>', lambda event: self.destroy())
         self.to_account_entry.focus_set()
 
-        self.center_window()
+        center_window(self, parent=parent)
         self.on_to_account_change()
         self.on_amount_change()
         self.on_note_change()
-
-    def center_window(self) -> None:
-        self.update_idletasks()
-        width = self.winfo_width()
-        height = self.winfo_height()
-        screen_width = self.winfo_screenwidth()
-        screen_height = self.winfo_screenheight()
-        pos_x = max((screen_width - width) // 2, 0)
-        pos_y = max((screen_height - height) // 2 - 20, 0)
-        self.geometry(f'{width}x{height}+{pos_x}+{pos_y}')
 
     def clear_form(self) -> None:
         self.to_account_entry.delete(0, tk.END)
@@ -230,7 +222,7 @@ class TransferDialog(tk.Toplevel):
     def on_submit(self) -> None:
         is_valid, error_message, to_account, amount, note = self.validate_before_submit()
         if not is_valid:
-            messagebox.showwarning('Lỗi nhập liệu', error_message)
+            messagebox.showwarning('Lỗi nhập liệu', error_message, parent=self)
             return
         note_display = note if note else '(không có)'
         confirm_text = (
@@ -241,14 +233,14 @@ class TransferDialog(tk.Toplevel):
             f'Ghi chú: {note_display}\n'
             f'Số dư còn lại: {format_money_vnd(self.from_balance - amount)}'
         )
-        confirm = messagebox.askyesno('Xác nhận', confirm_text)
+        confirm = messagebox.askyesno('Xác nhận', confirm_text, parent=self)
         if not confirm:
             return
         ok, message = self.bank_service.transfer_money(self.from_account_id, str(to_account.account_id), amount, note)
         if ok:
             if self.success_callback is not None:
                 self.success_callback()
-            messagebox.showinfo('Thành công', message)
+            messagebox.showinfo('Thành công', message, parent=self)
             self.destroy()
         else:
-            messagebox.showwarning('Không thành công', message)
+            messagebox.showwarning('Không thành công', message, parent=self)

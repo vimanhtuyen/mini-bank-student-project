@@ -22,6 +22,7 @@ python main.py
 - Nạp tiền / Rút tiền / Chuyển khoản
 - Xem số dư
 - Xem lịch sử giao dịch
+- Gửi tiết kiệm theo lãi suất và tất toán sổ
 
 
 hello Peter

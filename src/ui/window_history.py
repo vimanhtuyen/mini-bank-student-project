@@ -1,7 +1,7 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
 
-from src.ui.ui_helpers import build_transaction_search_text, format_money_vnd, get_transaction_type_display
+from src.ui.ui_helpers import apply_responsive_toplevel, center_window, build_transaction_search_text, format_money_vnd, get_transaction_type_display
 
 
 class HistoryWindow(tk.Toplevel):
@@ -11,8 +11,7 @@ class HistoryWindow(tk.Toplevel):
         self.account_id = str(account_id)
 
         self.title(f'Lịch sử giao dịch - {self.account_id}')
-        self.geometry('980x620')
-        self.resizable(False, False)
+        apply_responsive_toplevel(self, parent=parent, default_width=1100, default_height=680, min_width=900, min_height=560)
         self.transient(parent)
         self.grab_set()
 
@@ -37,7 +36,7 @@ class HistoryWindow(tk.Toplevel):
         search_entry.bind('<KeyRelease>', lambda event: self.apply_filters())
 
         ttk.Label(filter_frame, text='Loại giao dịch', style='Surface.TLabel').grid(row=0, column=2, padx=8, pady=8, sticky='w')
-        filter_combo = ttk.Combobox(filter_frame, textvariable=self.filter_var, values=['Tất cả', 'Nạp tiền', 'Rút tiền', 'Chuyển đi', 'Nhận tiền', 'Chuyển khoản'], width=18, state='readonly')
+        filter_combo = ttk.Combobox(filter_frame, textvariable=self.filter_var, values=['Tất cả', 'Nạp tiền', 'Rút tiền', 'Chuyển đi', 'Nhận tiền', 'Tiết kiệm'], width=18, state='readonly')
         filter_combo.grid(row=0, column=3, padx=8, pady=8, sticky='w')
         filter_combo.bind('<<ComboboxSelected>>', lambda event: self.apply_filters())
 
@@ -54,9 +53,9 @@ class HistoryWindow(tk.Toplevel):
         self.tree.heading('amount', text='Số tiền')
         self.tree.heading('note', text='Ghi chú')
         self.tree.column('time', width=170, anchor='center')
-        self.tree.column('type', width=140, anchor='center')
+        self.tree.column('type', width=160, anchor='center')
         self.tree.column('amount', width=150, anchor='e')
-        self.tree.column('note', width=470, anchor='w')
+        self.tree.column('note', width=450, anchor='w')
         self.tree.pack(side='left', fill='both', expand=True)
 
         scrollbar = ttk.Scrollbar(table_card, orient='vertical', command=self.tree.yview)
@@ -67,20 +66,17 @@ class HistoryWindow(tk.Toplevel):
         bottom_frame = ttk.Frame(main, style='Card.TFrame')
         bottom_frame.pack(fill='x', pady=(14, 0))
         ttk.Label(bottom_frame, textvariable=self.summary_var, style='Strong.TLabel').pack(side='left')
-        ttk.Button(bottom_frame, text='Đóng', command=self.destroy, style='Light.TButton').pack(side='right')
+
+        action_frame = ttk.Frame(bottom_frame, style='Card.TFrame')
+        action_frame.pack(side='right')
+        ttk.Button(action_frame, text='Xem chi tiết', command=self.show_selected_detail, style='Secondary.TButton').grid(row=0, column=0, padx=(0, 10))
+        ttk.Button(action_frame, text='Copy dòng đã chọn', command=self.copy_selected_row, style='Light.TButton').grid(row=0, column=1, padx=(0, 10))
+        ttk.Button(action_frame, text='Đóng', command=self.destroy, style='Light.TButton').grid(row=0, column=2)
 
         self.refresh_history()
-        self.center_window()
-
-    def center_window(self) -> None:
-        self.update_idletasks()
-        width = self.winfo_width()
-        height = self.winfo_height()
-        screen_width = self.winfo_screenwidth()
-        screen_height = self.winfo_screenheight()
-        x = max((screen_width - width) // 2, 0)
-        y = max((screen_height - height) // 2 - 20, 0)
-        self.geometry(f'{width}x{height}+{x}+{y}')
+        center_window(self, parent=parent)
+        self.lift()
+        self.focus_force()
 
     def refresh_history(self) -> None:
         self.all_history = self.bank_service.get_transaction_history(self.account_id)
@@ -90,6 +86,14 @@ class HistoryWindow(tk.Toplevel):
         self.search_var.set('')
         self.filter_var.set('Tất cả')
         self.apply_filters()
+
+    def matches_selected_type(self, transaction, selected_type: str) -> bool:
+        if selected_type == 'Tất cả':
+            return True
+        display_type = get_transaction_type_display(transaction.transaction_type)
+        if selected_type == 'Tiết kiệm':
+            return str(transaction.transaction_type).upper().startswith('SAVINGS_')
+        return display_type == selected_type
 
     def apply_filters(self) -> None:
         keyword = self.search_var.get().strip().lower()
@@ -101,7 +105,7 @@ class HistoryWindow(tk.Toplevel):
         for transaction in self.all_history:
             display_type = get_transaction_type_display(transaction.transaction_type)
             search_text = build_transaction_search_text(transaction)
-            if selected_type != 'Tất cả' and display_type != selected_type:
+            if not self.matches_selected_type(transaction, selected_type):
                 continue
             if keyword != '' and keyword not in search_text and keyword not in display_type.lower():
                 continue
@@ -117,11 +121,32 @@ class HistoryWindow(tk.Toplevel):
         total_amount = sum(int(getattr(item, 'amount', 0)) for item in filtered_history)
         self.summary_var.set(f'Số giao dịch hiển thị: {len(filtered_history)} | Tổng giá trị: {format_money_vnd(total_amount)}')
 
-    def show_selected_detail(self, event=None) -> None:
+    def get_selected_values(self):
         selected_items = self.tree.selection()
         if len(selected_items) == 0:
-            return
+            return None
         values = self.tree.item(selected_items[0], 'values')
         if not values or values[0] == '-':
+            return None
+        return values
+
+    def copy_selected_row(self) -> None:
+        values = self.get_selected_values()
+        if values is None:
+            messagebox.showinfo('Thông báo', 'Hãy chọn một giao dịch để copy.', parent=self)
             return
-        messagebox.showinfo('Chi tiết giao dịch', f'Thời gian: {values[0]}\nLoại giao dịch: {values[1]}\nSố tiền: {values[2]}\nGhi chú: {values[3]}')
+        text = f'Thời gian: {values[0]} | Loại: {values[1]} | Số tiền: {values[2]} | Ghi chú: {values[3]}'
+        try:
+            self.clipboard_clear()
+            self.clipboard_append(text)
+            messagebox.showinfo('Copy', 'Đã copy giao dịch đã chọn.', parent=self)
+        except Exception:
+            messagebox.showwarning('Lỗi', 'Không thể copy vào clipboard.', parent=self)
+
+    def show_selected_detail(self, event=None) -> None:
+        values = self.get_selected_values()
+        if values is None:
+            if event is None:
+                messagebox.showinfo('Thông báo', 'Hãy chọn một giao dịch để xem chi tiết.', parent=self)
+            return
+        messagebox.showinfo('Chi tiết giao dịch', f'Thời gian: {values[0]}\nLoại giao dịch: {values[1]}\nSố tiền: {values[2]}\nGhi chú: {values[3]}', parent=self)

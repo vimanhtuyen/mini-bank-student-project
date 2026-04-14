@@ -6,8 +6,10 @@ from typing import Dict, Any
 DEFAULT_BANK_DATA = {
     "next_account_id": 100001,
     "next_transaction_number": 1,
+    "next_saving_deposit_number": 1,
     "accounts": [],
-    "transactions": []
+    "transactions": [],
+    "saving_deposits": [],
 }
 
 
@@ -32,24 +34,24 @@ def load_bank_data(file_path: str) -> Dict[str, Any]:
         with open(file_path, "r", encoding="utf-8") as file:
             data = json.load(file)
 
-        # Bổ sung key bị thiếu để tránh lỗi
         for key, value in DEFAULT_BANK_DATA.items():
             if key not in data:
                 data[key] = value
 
-        # Chuẩn hóa kiểu dữ liệu cơ bản
         data["next_account_id"] = int(data.get("next_account_id", 100001))
         data["next_transaction_number"] = int(data.get("next_transaction_number", 1))
+        data["next_saving_deposit_number"] = int(data.get("next_saving_deposit_number", 1))
 
         if not isinstance(data.get("accounts"), list):
             data["accounts"] = []
         if not isinstance(data.get("transactions"), list):
             data["transactions"] = []
+        if not isinstance(data.get("saving_deposits"), list):
+            data["saving_deposits"] = []
 
         return data
 
     except Exception:
-        # Backup file lỗi
         try:
             os.replace(file_path, file_path + ".broken")
         except Exception:
