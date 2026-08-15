@@ -1,7 +1,5 @@
 # Mini Bank (Console Application)
 
-Dự án này phù hợp cho học sinh lớp 8: code rõ ràng, dễ đọc, chia phần theo module.
-
 ## 1) Yêu cầu
 - Python 3.9 trở lên (khuyến nghị)
 
@@ -23,8 +21,3 @@ python main.py
 - Xem số dư
 - Xem lịch sử giao dịch
 - Gửi tiết kiệm theo lãi suất và tất toán sổ
-
-
-hello Peter
-
-cho du an tu te
